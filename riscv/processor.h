@@ -219,6 +219,7 @@ struct state_t
   int last_inst_xlen;
   int last_inst_flen;
   reg_t last_inst_pc;
+  insn_t last_inst;
 #endif
 };
 
