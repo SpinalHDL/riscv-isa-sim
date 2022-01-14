@@ -300,6 +300,7 @@ void processor_t::step(size_t n)
 
         advance_pc();
       }
+      state.commit_count += 1;
     }
     catch(trap_t& t)
     {

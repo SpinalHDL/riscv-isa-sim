@@ -31,9 +31,11 @@ class csr_t {
 
   virtual ~csr_t();
 
- protected:
   // Return value indicates success; false means no write actually occurred
   virtual bool unlogged_write(const reg_t val) noexcept = 0;
+
+ protected:
+
 
   // Record this CSR update (which has already happened) in the commit log
   void log_write() const noexcept;
@@ -284,6 +286,7 @@ class mip_or_mie_csr_t: public csr_t {
   virtual reg_t read() const noexcept override final;
 
   void write_with_mask(const reg_t mask, const reg_t val) noexcept;
+  void unlogged_write_with_mask(const reg_t mask, const reg_t val) noexcept;
 
  protected:
   virtual bool unlogged_write(const reg_t val) noexcept override final;
@@ -445,8 +448,8 @@ class minstret_csr_t: public csr_t {
   virtual reg_t read() const noexcept override;
   void bump(const reg_t howmuch) noexcept;
   void write_upper_half(const reg_t val) noexcept;
- protected:
   virtual bool unlogged_write(const reg_t val) noexcept override;
+ protected:
   virtual reg_t written_value() const noexcept override;
  private:
   reg_t val;

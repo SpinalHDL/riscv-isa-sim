@@ -378,8 +378,8 @@ void state_t::reset(processor_t* const proc, reg_t max_isa)
     const reg_t which_mcounterh = CSR_MHPMCOUNTER3H + i - 3;
     const reg_t which_counter = CSR_HPMCOUNTER3 + i - 3;
     const reg_t which_counterh = CSR_HPMCOUNTER3H + i - 3;
-    auto mevent = std::make_shared<const_csr_t>(proc, which_mevent, 0);
-    auto mcounter = std::make_shared<const_csr_t>(proc, which_mcounter, 0);
+    auto mevent = std::make_shared<basic_csr_t>(proc, which_mevent, 0);
+    auto mcounter = std::make_shared<basic_csr_t>(proc, which_mcounter, 0);
     auto counter = std::make_shared<counter_proxy_csr_t>(proc, which_counter, mcounter);
     csrmap[which_mevent] = mevent;
     csrmap[which_mcounter] = mcounter;
