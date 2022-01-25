@@ -628,6 +628,10 @@ void processor_t::enable_log_commits()
 {
   log_commits_enabled = true;
 }
+void processor_t::disable_log_commits()
+{
+  log_commits_enabled = false;
+}
 #endif
 
 void processor_t::reset()

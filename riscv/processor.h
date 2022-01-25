@@ -286,6 +286,7 @@ public:
   void set_histogram(bool value);
 #ifdef RISCV_ENABLE_COMMITLOG
   void enable_log_commits();
+  void disable_log_commits();
   bool get_log_commits_enabled() const { return log_commits_enabled; }
 #endif
   void reset();
