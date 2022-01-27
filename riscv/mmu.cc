@@ -339,6 +339,13 @@ reg_t mmu_t::s2xlate(reg_t gva, reg_t gpa, access_type type, access_type trap_ty
 
 reg_t mmu_t::walk(reg_t addr, access_type type, reg_t mode, bool virt, bool hlvx)
 {
+  bool fault_address_hit = true; //fault_address == addr;
+  switch (type) {
+    case FETCH: if(fault_fetch && fault_address_hit) throw trap_instruction_page_fault(virt, addr, 0, 0); break;
+    case LOAD:  if(fault_load  && fault_address_hit)  throw trap_load_page_fault(virt, addr, 0, 0);        break;
+    case STORE: if(fault_store && fault_address_hit) throw trap_store_page_fault(virt, addr, 0, 0);       break;
+  }
+
   reg_t page_mask = (reg_t(1) << PGSHIFT) - 1;
   reg_t satp = proc->get_state()->satp->readvirt(virt);
   vm_info vm = decode_vm_info(proc->get_const_xlen(), false, mode, satp);

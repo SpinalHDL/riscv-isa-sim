@@ -61,6 +61,11 @@ public:
   mmu_t(simif_t* sim, processor_t* proc);
   ~mmu_t();
 
+  bool  fault_fetch = false;
+  bool  fault_load = false;
+  bool  fault_store = false;
+  reg_t fault_address;
+
 #define RISCV_XLATE_VIRT (1U << 0)
 #define RISCV_XLATE_VIRT_HLVX (1U << 1)
 
