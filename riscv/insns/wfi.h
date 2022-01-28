@@ -8,5 +8,4 @@ if (STATE.v && STATE.prv == PRV_U) {
 } else {
   require_privilege(PRV_S);
 }
-if(!P.wfi_as_nop) wfi();
-
+wfi();

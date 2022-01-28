@@ -358,7 +358,6 @@ public:
 
   // When true, display disassembly of each instruction that's executed.
   bool debug;
-  bool wfi_as_nop;
   // When true, take the slow simulation path.
   bool slow_path();
   bool halted() { return state.debug_mode; }
