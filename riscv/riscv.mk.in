@@ -1252,6 +1252,7 @@ riscv_insn_priv = \
 	sfence_vma \
 	sret \
 	wfi \
+	flush_data \
 
 riscv_insn_svinval = \
 	sfence_w_inval \
