@@ -220,6 +220,7 @@ struct state_t
   int last_inst_flen;
   insn_t last_inst;
   uint64_t commit_count;
+  int fpu_flags_set;
 #endif
 };
 

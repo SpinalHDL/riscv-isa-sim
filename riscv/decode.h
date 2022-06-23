@@ -280,6 +280,7 @@ private:
 #define require_vm do { if (insn.v_vm() == 0) require(insn.rd() != 0);} while(0);
 
 #define set_fp_exceptions ({ if (softfloat_exceptionFlags) { \
+                               STATE.fpu_flags_set |= softfloat_exceptionFlags; \
                                STATE.fflags->write(STATE.fflags->read() | softfloat_exceptionFlags); \
                              } \
                              softfloat_exceptionFlags = 0; })
