@@ -359,6 +359,9 @@ void state_t::reset(processor_t* const proc, reg_t max_isa)
   csrmap[CSR_MEPC] = mepc = std::make_shared<epc_csr_t>(proc, CSR_MEPC);
   csrmap[CSR_MTVAL] = mtval = std::make_shared<basic_csr_t>(proc, CSR_MTVAL, 0);
   csrmap[CSR_MSCRATCH] = std::make_shared<basic_csr_t>(proc, CSR_MSCRATCH, 0);
+  csrmap[0x800] = std::make_shared<basic_csr_t>(proc, 0x800, 0);
+  csrmap[0x802] = std::make_shared<basic_csr_t>(proc, 0x801, 0);
+  csrmap[0x801] = std::make_shared<basic_csr_t>(proc, 0x802, 0);
   csrmap[CSR_MTVEC] = mtvec = std::make_shared<tvec_csr_t>(proc, CSR_MTVEC);
   csrmap[CSR_MCAUSE] = mcause = std::make_shared<cause_csr_t>(proc, CSR_MCAUSE);
   csrmap[CSR_MINSTRET] = minstret = std::make_shared<minstret_csr_t>(proc, CSR_MINSTRET);
@@ -826,6 +829,7 @@ void processor_t::enter_debug_mode(uint8_t cause)
 
 void processor_t::debug_output_log(std::stringstream *s)
 {
+  if(!get_log_commits_enabled()) return;
   if (log_file==stderr) {
     std::ostream out(sout_.rdbuf());
     out << s->str(); // handles command line options -d -s -l
