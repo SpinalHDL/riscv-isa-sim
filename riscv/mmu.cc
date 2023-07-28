@@ -370,9 +370,16 @@ reg_t mmu_t::walk(reg_t addr, access_type type, reg_t mode, bool virt, bool hlvx
 
     // check that physical address of PTE is legal
     auto pte_paddr = s2xlate(addr, base + idx * vm.ptesize, LOAD, type, virt, false);
-    auto ppte = sim->addr_to_mem(pte_paddr);
-    if (!ppte || !pmp_ok(pte_paddr, vm.ptesize, LOAD, PRV_S))
+    if (!pmp_ok(pte_paddr, vm.ptesize, LOAD, PRV_S))
       throw_access_exception(virt, addr, type);
+
+    auto ppte = sim->addr_to_mem(pte_paddr);
+    uint64_t ppte_io;
+    if(!ppte){ // Implement PTE access in MMIO region
+        if(!sim->mmio_load(pte_paddr, vm.ptesize, (uint8_t*)&ppte_io))
+            throw_access_exception(virt, addr, type);
+        ppte = (char*)&ppte_io;
+    }
 
     reg_t pte = vm.ptesize == 4 ? from_target(*(target_endian<uint32_t>*)ppte) : from_target(*(target_endian<uint64_t>*)ppte);
     reg_t ppn = (pte & ~reg_t(PTE_ATTR)) >> PTE_PPN_SHIFT;
