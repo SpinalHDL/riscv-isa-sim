@@ -222,6 +222,9 @@ bool processor_t::slow_path()
 // fetch/decode/execute loop
 void processor_t::step(size_t n)
 {
+#ifdef RISCV_ENABLE_COMMITLOG
+  state.trap_happened = false;
+#endif
   if (!state.debug_mode) {
     if (halt_request == HR_REGULAR) {
       enter_debug_mode(DCSR_CAUSE_DEBUGINT);

@@ -874,6 +874,12 @@ void processor_t::take_trap(trap_t& t, reg_t epc)
   reg_t bit = t.cause();
   bool curr_virt = state.v;
   bool interrupt = (bit & ((reg_t)1 << (max_xlen-1))) != 0;
+#ifdef RISCV_ENABLE_COMMITLOG
+  state.trap_happened = true;
+  state.trap_interrupt = interrupt;
+  state.trap_code = bit & 0x7FFFFFFF;
+#endif
+
   if (interrupt) {
     vsdeleg = (curr_virt && state.prv <= PRV_S) ? (state.mideleg->read() & state.hideleg->read()) : 0;
     hsdeleg = (state.prv <= PRV_S) ? state.mideleg->read() : 0;
