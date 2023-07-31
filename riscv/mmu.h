@@ -255,10 +255,15 @@ public:
   inline void acquire_load_reservation(reg_t vaddr)
   {
     reg_t paddr = translate(vaddr, 1, LOAD, 0);
-    if (auto host_addr = sim->addr_to_mem(paddr))
+    if (auto host_addr = sim->addr_to_mem(paddr)) {
       load_reservation_address = refill_tlb(vaddr, paddr, host_addr, LOAD).target_offset + vaddr;
-    else
-      throw trap_load_access_fault((proc) ? proc->state.v : false, vaddr, 0, 0); // disallow LR to I/O space
+    } else {
+      uint8_t dummy[4];
+      if(!sim->mmio_load(paddr, 4, dummy)){
+        throw trap_load_access_fault((proc) ? proc->state.v : false, vaddr, 0, 0); // disallow LR to I/O space
+      }
+      load_reservation_address = paddr;
+    }
   }
 
   inline void load_reserved_address_misaligned(reg_t vaddr)
@@ -287,10 +292,11 @@ public:
       store_conditional_address_misaligned(vaddr);
 
     reg_t paddr = translate(vaddr, 1, STORE, 0);
-    if (auto host_addr = sim->addr_to_mem(paddr))
+    if (auto host_addr = sim->addr_to_mem(paddr)) {
       return load_reservation_address == refill_tlb(vaddr, paddr, host_addr, STORE).target_offset + vaddr;
-    else
-      throw trap_store_access_fault((proc) ? proc->state.v : false, vaddr, 0, 0); // disallow SC to I/O space
+    } else {
+      return load_reservation_address == paddr;
+    }
   }
 
   static const reg_t ICACHE_ENTRIES = 1024;
