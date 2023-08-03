@@ -81,7 +81,7 @@ tlb_entry_t mmu_t::fetch_slow_path(reg_t vaddr)
   if (auto host_addr = sim->addr_to_mem(paddr)) {
     return refill_tlb(vaddr, paddr, host_addr, FETCH);
   } else {
-    if (!mmio_load(paddr, sizeof fetch_temp, (uint8_t*)&fetch_temp))
+    if (!mmio_fetch(paddr, sizeof fetch_temp, (uint8_t*)&fetch_temp))
       throw trap_instruction_access_fault(proc->state.v, vaddr, 0, 0);
     tlb_entry_t entry = {(char*)&fetch_temp - vaddr, paddr - vaddr};
     return entry;
@@ -123,6 +123,14 @@ bool mmu_t::mmio_ok(reg_t addr, access_type type)
   return true;
 }
 
+bool mmu_t::mmio_fetch(reg_t addr, size_t len, uint8_t* bytes)
+{
+  if (!mmio_ok(addr, FETCH))
+    return false;
+
+  return sim->mmio_fetch(addr, len, bytes);
+}
+
 bool mmu_t::mmio_load(reg_t addr, size_t len, uint8_t* bytes)
 {
   if (!mmio_ok(addr, LOAD))
@@ -130,6 +138,7 @@ bool mmu_t::mmio_load(reg_t addr, size_t len, uint8_t* bytes)
 
   return sim->mmio_load(addr, len, bytes);
 }
+
 
 bool mmu_t::mmio_store(reg_t addr, size_t len, const uint8_t* bytes)
 {
@@ -376,7 +385,7 @@ reg_t mmu_t::walk(reg_t addr, access_type type, reg_t mode, bool virt, bool hlvx
     auto ppte = sim->addr_to_mem(pte_paddr);
     uint64_t ppte_io;
     if(!ppte){ // Implement PTE access in MMIO region
-        if(!sim->mmio_load(pte_paddr, vm.ptesize, (uint8_t*)&ppte_io))
+        if(!sim->mmio_mmu(pte_paddr, vm.ptesize, (uint8_t*)&ppte_io))
             throw_access_exception(virt, addr, type);
         ppte = (char*)&ppte_io;
     }

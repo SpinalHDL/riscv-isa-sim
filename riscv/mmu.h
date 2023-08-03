@@ -258,10 +258,10 @@ public:
     if (auto host_addr = sim->addr_to_mem(paddr)) {
       load_reservation_address = refill_tlb(vaddr, paddr, host_addr, LOAD).target_offset + vaddr;
     } else {
-      uint8_t dummy[4];
-      if(!sim->mmio_load(paddr, 4, dummy)){
-        throw trap_load_access_fault((proc) ? proc->state.v : false, vaddr, 0, 0); // disallow LR to I/O space
-      }
+//      uint8_t dummy[4];
+//      if(!sim->mmio_load(paddr, 4, dummy)){
+//        throw trap_load_access_fault((proc) ? proc->state.v : false, vaddr, 0, 0); // disallow LR to I/O space
+//      }
       load_reservation_address = paddr;
     }
   }
@@ -434,6 +434,7 @@ private:
   tlb_entry_t fetch_slow_path(reg_t addr);
   void load_slow_path(reg_t addr, reg_t len, uint8_t* bytes, uint32_t xlate_flags);
   void store_slow_path(reg_t addr, reg_t len, const uint8_t* bytes, uint32_t xlate_flags);
+  bool mmio_fetch(reg_t addr, size_t len, uint8_t* bytes);
   bool mmio_load(reg_t addr, size_t len, uint8_t* bytes);
   bool mmio_store(reg_t addr, size_t len, const uint8_t* bytes);
   bool mmio_ok(reg_t addr, access_type type);

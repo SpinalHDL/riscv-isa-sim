@@ -12,6 +12,8 @@ public:
   // should return NULL for MMIO addresses
   virtual char* addr_to_mem(reg_t addr) = 0;
   // used for MMIO addresses
+  virtual bool mmio_fetch(reg_t addr, size_t len, uint8_t* bytes) = 0;
+  virtual bool mmio_mmu(reg_t addr, size_t len, uint8_t* bytes) = 0;
   virtual bool mmio_load(reg_t addr, size_t len, uint8_t* bytes) = 0;
   virtual bool mmio_store(reg_t addr, size_t len, const uint8_t* bytes) = 0;
   // Callback for processors to let the simulation know they were reset.

@@ -265,6 +265,17 @@ static bool paddr_ok(reg_t addr)
   return (addr >> MAX_PADDR_BITS) == 0;
 }
 
+bool sim_t::mmio_fetch(reg_t addr, size_t len, uint8_t* bytes)
+{
+  return mmio_load(addr, len, bytes);
+}
+
+bool sim_t::mmio_mmu(reg_t addr, size_t len, uint8_t* bytes)
+{
+  return mmio_load(addr, len, bytes);
+}
+
+
 bool sim_t::mmio_load(reg_t addr, size_t len, uint8_t* bytes)
 {
   if (addr + len < addr || !paddr_ok(addr + len - 1))
