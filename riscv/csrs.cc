@@ -421,6 +421,7 @@ mstatus_csr_t::mstatus_csr_t(processor_t* const proc, const reg_t addr):
 #ifdef RISCV_ENABLE_DUAL_ENDIAN
       | (proc->get_mmu()->is_target_big_endian() ? MSTATUS_UBE | MSTATUS_SBE | MSTATUS_MBE : 0)
 #endif
+      | (!proc->extension_enabled_const('U') ? MSTATUS_MPP : 0)
       | 0  // initial value for mstatus
   ) {
 }
