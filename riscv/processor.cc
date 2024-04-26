@@ -54,6 +54,11 @@ processor_t::processor_t(const char* isa, const char* priv, const char* varch,
     set_mmu_capability(IMPL_MMU_SV48);
 
   reset();
+  if(get_flen() == 32){
+	  for(int i = 0;i < 32;i++){
+		  state.FPR.write(i,freg(f32(0)));
+	  }
+  }
 }
 
 processor_t::~processor_t()
