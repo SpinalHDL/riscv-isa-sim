@@ -29,6 +29,9 @@ void state_t::csr_init(processor_t* const proc, reg_t max_isa)
   }
   add_csr(CSR_MEPC, mepc = std::make_shared<epc_csr_t>(proc, CSR_MEPC));
   add_csr(CSR_MTVAL, mtval = std::make_shared<basic_csr_t>(proc, CSR_MTVAL, 0));
+  add_csr(0x800, std::make_shared<basic_csr_t>(proc, 0x800, 0));
+  add_csr(0x802, std::make_shared<basic_csr_t>(proc, 0x801, 0));
+  add_csr(0x801, std::make_shared<basic_csr_t>(proc, 0x802, 0));
   add_csr(CSR_MSCRATCH, std::make_shared<basic_csr_t>(proc, CSR_MSCRATCH, 0));
   add_csr(CSR_MTVEC, mtvec = std::make_shared<tvec_csr_t>(proc, CSR_MTVEC));
   add_csr(CSR_MCAUSE, mcause = std::make_shared<cause_csr_t>(proc, CSR_MCAUSE));
