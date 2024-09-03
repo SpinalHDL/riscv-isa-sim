@@ -212,7 +212,13 @@ static inline bool is_aligned(const unsigned val, const unsigned pos)
     } \
   } while (0);
 
-#define raise_fp_exceptions(flags) do { if (flags) STATE.fflags->write(STATE.fflags->read() | (flags)); } while (0);
+#define raise_fp_exceptions(flags) \
+  do { \
+      if (flags) { \
+          STATE.fpu_flags_set |= softfloat_exceptionFlags; \
+          STATE.fflags->write(STATE.fflags->read() | (flags)); \
+      } \
+  } while (0)
 #define set_fp_exceptions \
   do { \
     raise_fp_exceptions(softfloat_exceptionFlags); \
