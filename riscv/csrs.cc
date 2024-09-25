@@ -346,7 +346,7 @@ reg_t base_status_csr_t::adjust_sd(const reg_t val) const noexcept {
   // because the SD bit moves when XLEN changes, which means we would
   // need to call adjust_sd() on every read, instead of on every
   // write.
-  static const reg_t sd_bit = proc->get_const_xlen() == 64 ? SSTATUS64_SD : SSTATUS32_SD;
+  const reg_t sd_bit = proc->get_const_xlen() == 64 ? SSTATUS64_SD : SSTATUS32_SD;
   if (((val & SSTATUS_FS) == SSTATUS_FS) ||
       ((val & SSTATUS_VS) == SSTATUS_VS) ||
       ((val & SSTATUS_XS) == SSTATUS_XS)) {
