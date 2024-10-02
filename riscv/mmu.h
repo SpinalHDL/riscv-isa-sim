@@ -78,6 +78,11 @@ private:
 public:
   mmu_t(simif_t* sim, endianness_t endianness, processor_t* proc);
   ~mmu_t();
+  
+  bool  fault_fetch = false;
+  bool  fault_load = false;
+  bool  fault_store = false;
+  reg_t fault_address;
 
   template<typename T>
   T ALWAYS_INLINE load(reg_t addr, xlate_flags_t xlate_flags = {}) {
@@ -94,10 +99,6 @@ public:
 
     if (unlikely(proc && proc->get_log_commits_enabled()))
       proc->state.log_mem_read.push_back(std::make_tuple(addr, 0, sizeof(T)));
-  bool  fault_fetch = false;
-  bool  fault_load = false;
-  bool  fault_store = false;
-  reg_t fault_address;
 
     return from_target(res);
   }
@@ -230,7 +231,7 @@ public:
 
     auto base = transformed_addr & ~(blocksz - 1);
     for (size_t offset = 0; offset < blocksz; offset += 1) {
-      check_triggers(triggers::OPERATION_STORE, base + offset, false, transformed_addr, std::nullopt);
+      check_triggers(triggers::OPERATION_STORE, base + offset, false, transformed_addr, NullOpt);
       store<uint8_t>(base + offset, 0);
     }
   }
@@ -241,7 +242,7 @@ public:
 
     auto base = transformed_addr & ~(blocksz - 1);
     for (size_t offset = 0; offset < blocksz; offset += 1)
-      check_triggers(triggers::OPERATION_STORE, base + offset, false, transformed_addr, std::nullopt);
+      check_triggers(triggers::OPERATION_STORE, base + offset, false, transformed_addr, NullOpt);
     convert_load_traps_to_store_traps({
       const reg_t paddr = translate(generate_access_info(transformed_addr, LOAD, {}), 1);
       if (sim->reservable(paddr)) {
