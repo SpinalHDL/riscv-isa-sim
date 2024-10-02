@@ -10,11 +10,13 @@
 #include <unordered_map>
 // For std::shared_ptr
 #include <memory>
-// For Optional
-#include "optional.h"
+// For std::optional
+#include <optional>
 // For access_type:
 #include "memtracer.h"
 #include <cassert>
+// For Optional
+#include "optional.h"
 
 
 class processor_t;
