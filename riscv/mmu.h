@@ -39,14 +39,41 @@ struct tlb_entry_t {
 };
 
 struct xlate_flags_t {
-  const bool forced_virt : 1 {false};
-  const bool hlvx : 1 {false};
-  const bool lr : 1 {false};
-  const bool ss_access : 1 {false};
+  // Existing constructors
+  xlate_flags_t()
+      : forced_virt(false), hlvx(false), lr(false), ss_access(false) {}
 
-  bool is_special_access() const {
-    return forced_virt || hlvx || lr || ss_access;
+  xlate_flags_t(bool forced_virt, bool hlvx, bool lr, bool ss_access)
+      : forced_virt(forced_virt), hlvx(hlvx), lr(lr), ss_access(ss_access) {}
+
+  xlate_flags_t(std::initializer_list<bool> list) {
+      auto it = list.begin();
+      forced_virt = (it != list.end()) ? *it++ : false;
+      hlvx = (it != list.end()) ? *it++ : false;
+      lr = (it != list.end()) ? *it++ : false;
+      ss_access = (it != list.end()) ? *it++ : false;
   }
+
+  // Method for checking if access is special
+  bool is_special_access() const {
+      return forced_virt || hlvx || lr || ss_access;
+  }
+  // Static methods added for easy instance creation
+  static xlate_flags_t with_lr() {
+      return xlate_flags_t(false, false, true, false); // lr=true
+  }
+  static xlate_flags_t with_fv() {
+      return xlate_flags_t(true, false, false, false); // forced_virt=true
+  }
+  static xlate_flags_t with_fv_hlvx() {
+      return xlate_flags_t(true, true, false, false); // orced_virt=true, hlvx=true
+  }
+
+  // Bits fields
+  bool forced_virt : 1;
+  bool hlvx : 1;
+  bool lr : 1;
+  bool ss_access : 1;
 };
 
 struct mem_access_info_t {
@@ -105,17 +132,17 @@ public:
 
   template<typename T>
   T load_reserved(reg_t addr) {
-    return load<T>(addr, {.lr = true});
+    return load<T>(addr, xlate_flags_t::with_lr());
   }
 
   template<typename T>
   T guest_load(reg_t addr) {
-    return load<T>(addr, {.forced_virt = true});
+    return load<T>(addr, xlate_flags_t::with_fv());
   }
 
   template<typename T>
   T guest_load_x(reg_t addr) {
-    return load<T>(addr, {.forced_virt=true, .hlvx=true});
+    return load<T>(addr, xlate_flags_t::with_fv_hlvx());
   }
 
   // shadow stack load
@@ -145,7 +172,7 @@ public:
 
   template<typename T>
   void guest_store(reg_t addr, T val) {
-    store(addr, val, {.forced_virt=true});
+    store(addr, val, xlate_flags_t::with_fv());
   }
 
   // shadow stack store
@@ -189,7 +216,7 @@ public:
       bool hlvx = false;
       bool lr = false;
       bool ss_access = true;
-      store_slow_path(addr, sizeof(T), nullptr, {forced_virt, hlvx, lr, ss_access}, false, true);
+      store_slow_path(addr, sizeof(T), nullptr, xlate_flags_t(forced_virt, hlvx, lr, ss_access), false, true);
       auto data = load<T>(addr, {forced_virt, hlvx, lr, ss_access});
       store<T>(addr, value, {forced_virt, hlvx, lr, ss_access});
       return data;

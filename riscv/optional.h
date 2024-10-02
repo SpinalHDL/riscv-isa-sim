@@ -1,12 +1,12 @@
 #pragma once
 
-#include <utility>     // Pour std::move et std::forward
-#include <type_traits> // Pour std::aligned_storage
-#include <stdexcept>   // Pour std::runtime_error
+#include <utility>     // For std::move and std::forward
+#include <type_traits> // For std::aligned_storage
+#include <stdexcept>   // For std::runtime_error
 
-// Structure globale représentant l'absence de valeur, équivalent de std::nullopt
+// Global structure representing the absence of a value, equivalent to std::nullopt
 struct NullOpt_t {};
-// Constante globale NullOpt pour indiquer l'absence de valeur, utilisable pour tous les Optional<T>
+// Global constant NullOpt to indicate the absence of a value, usable for any Optional<T>
 constexpr NullOpt_t NullOpt;
 //NullOpt_t NullOpt;
 
@@ -14,7 +14,7 @@ template<typename T>
 class Optional {
 private:
     using StorageType = typename std::aligned_storage<sizeof(T), alignof(T)>::type;
-    bool has_value_flag;    // Renommé pour éviter le conflit
+    bool has_value_flag;    // Renamed to avoid conflict
     StorageType storage;
 
     T* data() {
@@ -26,30 +26,30 @@ private:
     }
 
 public:
-    // Constructeur par défaut : crée un Optional vide
+    // Default constructor: creates an empty Optional
     Optional() : has_value_flag(false) {}
 
-    // Constructeur NullOpt : permet la création d'un Optional vide explicitement
+    // NullOpt constructor: allows explicit creation of an empty Optional
     Optional(NullOpt_t) : has_value_flag(false) {}
 
-    // Constructeur à partir d'une valeur
+    // Constructor from a value
     Optional(const T& value) : has_value_flag(true) {
         new (&storage) T(value);
     }
 
-    // Constructeur par déplacement
+    // Move constructor
     Optional(T&& value) : has_value_flag(true) {
         new (&storage) T(std::move(value));
     }
 
-    // Constructeur de copie
+    // Copy constructor
     Optional(const Optional& other) : has_value_flag(other.has_value_flag) {
         if (other.has_value_flag) {
             new (&storage) T(*other.data());
         }
     }
 
-    // Constructeur de déplacement
+    // Move constructor
     Optional(Optional&& other) noexcept : has_value_flag(other.has_value_flag) {
         if (other.has_value_flag) {
             new (&storage) T(std::move(*other.data()));
@@ -57,12 +57,12 @@ public:
         }
     }
 
-    // Destructeur
+    // Destructor
     ~Optional() {
         reset();
     }
 
-    // Opérateur d'affectation par copie
+    // Copy assignment operator
     Optional& operator=(const Optional& other) {
         if (this != &other) {
             reset();
@@ -74,7 +74,7 @@ public:
         return *this;
     }
 
-    // Opérateur d'affectation par déplacement
+    // Move assignment operator
     Optional& operator=(Optional&& other) noexcept {
         if (this != &other) {
             reset();
@@ -87,13 +87,13 @@ public:
         return *this;
     }
 
-    // Opérateur d'affectation avec NullOpt
+    // Assignment operator with NullOpt
     Optional& operator=(NullOpt_t) noexcept {
         reset();
         return *this;
     }
 
-    // Réinitialiser l'Optional
+    // Reset the Optional
     void reset() {
         if (has_value_flag) {
             data()->~T();
@@ -101,12 +101,12 @@ public:
         }
     }
 
-    // Vérifie si une valeur est présente
+    // Check if a value is present
     bool has_value() const noexcept {
         return has_value_flag;
     }
 
-    // Accéder à la valeur (non-const)
+    // Access the value (non-const)
     T& value() {
         if (!has_value_flag) {
             throw std::runtime_error("Optional has no value");
@@ -114,7 +114,7 @@ public:
         return *data();
     }
 
-    // Accéder à la valeur (const)
+    // Access the value (const)
     const T& value() const {
         if (!has_value_flag) {
             throw std::runtime_error("Optional has no value");
@@ -122,12 +122,12 @@ public:
         return *data();
     }
 
-    // Opérateur booléen pour vérifier la présence de la valeur
+    // Boolean operator to check the presence of a value
     explicit operator bool() const noexcept {
         return has_value_flag;
     }
 
-    // Accès direct avec l'opérateur *
+    // Direct access with the * operator
     T& operator*() {
         return value();
     }
@@ -136,7 +136,7 @@ public:
         return value();
     }
 
-    // Accès avec l'opérateur ->
+    // Access with the -> operator
     T* operator->() {
         return data();
     }
@@ -145,13 +145,13 @@ public:
         return data();
     }
 
-    // Méthode pour obtenir une valeur par défaut si absent
+    // Method to get a default value if none is present
     T value_or(const T& default_value) const {
         return has_value_flag ? *data() : default_value;
     }
 };
 
-// Utilisation globale de NullOpt pour signifier l'absence de valeur
+// Global use of NullOpt to signify the absence of a value
 template <typename T>
 Optional<T> make_optional(const T& value) {
     return Optional<T>(value);
