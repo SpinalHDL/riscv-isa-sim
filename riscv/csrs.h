@@ -10,13 +10,12 @@
 #include <unordered_map>
 // For std::shared_ptr
 #include <memory>
-// For std::optional
-#include <optional>
+// For Optional
+#include "optional.h"
 // For access_type:
 #include "memtracer.h"
 #include <cassert>
-// For std::optional
-#include <optional>
+
 
 class processor_t;
 struct state_t;
@@ -863,7 +862,7 @@ class smcntrpmf_csr_t : public masked_csr_t {
  protected:
   virtual bool unlogged_write(const reg_t val) noexcept override;
  private:
-  std::optional<reg_t> prev_val;
+  Optional<reg_t> prev_val;
 };
 
 // srmcfg CSR provided by Ssqosid extension

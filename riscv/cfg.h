@@ -2,7 +2,7 @@
 #ifndef _RISCV_CFG_H
 #define _RISCV_CFG_H
 
-#include <optional>
+#include "optional.h"
 #include <vector>
 #include "decode.h"
 #include <cassert>
@@ -72,7 +72,7 @@ public:
   reg_t                   pmpregions;
   reg_t                   pmpgranularity;
   std::vector<mem_cfg_t>  mem_layout;
-  std::optional<reg_t>    start_pc;
+  Optional<reg_t>         start_pc;
   std::vector<size_t>     hartids;
   bool                    explicit_hartids;
   bool                    real_time_clint;

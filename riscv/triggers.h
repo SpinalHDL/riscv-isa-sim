@@ -2,7 +2,7 @@
 #define _RISCV_TRIGGERS_H
 
 #include <vector>
-#include <optional>
+#include "optional.h"
 
 #include "decode.h"
 
@@ -90,11 +90,11 @@ public:
   virtual bool icount_check_needed() const { return false; }
   virtual void stash_read_values() {}
 
-  virtual std::optional<match_result_t> detect_memory_access_match(processor_t UNUSED * const proc,
-      operation_t UNUSED operation, reg_t UNUSED address, std::optional<reg_t> UNUSED data) noexcept { return std::nullopt; }
-  virtual std::optional<match_result_t> detect_icount_fire(processor_t UNUSED * const proc) { return std::nullopt; }
+  virtual Optional<match_result_t> detect_memory_access_match(processor_t UNUSED * const proc,
+      operation_t UNUSED operation, reg_t UNUSED address, Optional<reg_t> UNUSED data) noexcept { return NullOpt; }
+  virtual Optional<match_result_t> detect_icount_fire(processor_t UNUSED * const proc) { return NullOpt; }
   virtual void detect_icount_decrement(processor_t UNUSED * const proc) {}
-  virtual std::optional<match_result_t> detect_trap_match(processor_t UNUSED * const proc, const trap_t UNUSED & t) noexcept { return std::nullopt; }
+  virtual Optional<match_result_t> detect_trap_match(processor_t UNUSED * const proc, const trap_t UNUSED & t) noexcept { return NullOpt; }
 
 protected:
   static action_t legalize_action(reg_t val, reg_t action_mask, reg_t dmode_mask) noexcept;
@@ -116,7 +116,7 @@ private:
   struct mhselect_interpretation {
     const unsigned mhselect;
     const mhselect_mode_t mode;
-    const std::optional<bool> shift_mhvalue;
+    const Optional<bool> shift_mhvalue;
     unsigned compare_val(const unsigned mhvalue) const {
       return shift_mhvalue.value() ? (mhvalue << 1 | mhselect >> 2) : mhvalue;
     };
@@ -125,15 +125,15 @@ private:
   mhselect_interpretation interpret_mhselect(bool h_enabled) const noexcept {
     static unsigned warlize_if_h[8] = { 0, 1, 2, 0, 4, 5, 6, 4 };  // 3,7 downgrade
     static unsigned warlize_no_h[8] = { 0, 0, 0, 0, 4, 4, 4, 4 };  // only 0,4 legal
-    static std::optional<mhselect_interpretation> table[8] = {
-      mhselect_interpretation{ 0, MHSELECT_MODE_IGNORE, std::nullopt },
+    static Optional<mhselect_interpretation> table[8] = {
+      mhselect_interpretation{ 0, MHSELECT_MODE_IGNORE, NullOpt },
       mhselect_interpretation{ 1, MHSELECT_MODE_MCONTEXT, true },
       mhselect_interpretation{ 2, MHSELECT_MODE_VMID, true },
-      std::nullopt,
+      NullOpt,
       mhselect_interpretation{ 4, MHSELECT_MODE_MCONTEXT, false },
       mhselect_interpretation{ 5, MHSELECT_MODE_MCONTEXT, true },
       mhselect_interpretation{ 6, MHSELECT_MODE_VMID, true },
-      std::nullopt
+      NullOpt
     };
     assert(mhselect < 8);
     unsigned legal = h_enabled ? warlize_if_h[mhselect] : warlize_no_h[mhselect];
@@ -164,7 +164,7 @@ public:
   bool get_dmode() const override { return dmode; }
   virtual action_t get_action() const override { return action; }
 
-  virtual std::optional<match_result_t> detect_trap_match(processor_t * const proc, const trap_t& t) noexcept override;
+  virtual Optional<match_result_t> detect_trap_match(processor_t * const proc, const trap_t& t) noexcept override;
 
 private:
   virtual bool simple_match(bool interrupt, reg_t bit) const = 0;
@@ -214,8 +214,8 @@ public:
   virtual action_t get_action() const override { return action; }
   virtual void set_hit(hit_t val) = 0;
 
-  virtual std::optional<match_result_t> detect_memory_access_match(processor_t * const proc,
-      operation_t operation, reg_t address, std::optional<reg_t> data) noexcept override;
+  virtual Optional<match_result_t> detect_memory_access_match(processor_t * const proc,
+      operation_t operation, reg_t address, Optional<reg_t> data) noexcept override;
 
 private:
   bool simple_match(unsigned xlen, reg_t value) const;
@@ -267,7 +267,7 @@ public:
   virtual bool icount_check_needed() const override { return count > 0 || pending; }
   virtual void stash_read_values() override;
 
-  virtual std::optional<match_result_t> detect_icount_fire(processor_t * const proc) noexcept override;
+  virtual Optional<match_result_t> detect_icount_fire(processor_t * const proc) noexcept override;
   virtual void detect_icount_decrement(processor_t * const proc) noexcept override;
 
 private:
@@ -293,9 +293,9 @@ public:
 
   unsigned count() const { return triggers.size(); }
 
-  std::optional<match_result_t> detect_memory_access_match(operation_t operation, reg_t address, std::optional<reg_t> data) noexcept;
-  std::optional<match_result_t> detect_icount_match() noexcept;
-  std::optional<match_result_t> detect_trap_match(const trap_t& t) noexcept;
+  Optional<match_result_t> detect_memory_access_match(operation_t operation, reg_t address, Optional<reg_t> data) noexcept;
+  Optional<match_result_t> detect_icount_match() noexcept;
+  Optional<match_result_t> detect_trap_match(const trap_t& t) noexcept;
 
   processor_t *proc;
 private:

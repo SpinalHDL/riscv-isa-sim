@@ -170,7 +170,7 @@ bool mmu_t::mmio(reg_t paddr, size_t len, uint8_t* bytes, access_type type)
   return true;
 }
 
-void mmu_t::check_triggers(triggers::operation_t operation, reg_t address, bool virt, reg_t tval, std::optional<reg_t> data)
+void mmu_t::check_triggers(triggers::operation_t operation, reg_t address, bool virt, reg_t tval, Optional<reg_t> data)
 {
   if (matched_trigger || !proc)
     return;
