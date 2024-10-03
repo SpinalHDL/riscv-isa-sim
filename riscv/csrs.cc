@@ -773,6 +773,10 @@ void mip_or_mie_csr_t::write_with_mask(const reg_t mask, const reg_t val) noexce
   log_write();
 }
 
+void mip_or_mie_csr_t::unlogged_write_with_mask(const reg_t mask, const reg_t val) noexcept {
+  this->val = (this->val & ~mask) | (val & mask);
+}
+
 bool mip_or_mie_csr_t::unlogged_write(const reg_t val) noexcept {
   write_with_mask(write_mask(), val);
   return false; // avoid double logging: already logged by write_with_mask()

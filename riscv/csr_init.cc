@@ -73,7 +73,7 @@ void state_t::csr_init(processor_t* const proc, reg_t max_isa)
     const reg_t which_counter = CSR_HPMCOUNTER3 + i;
     const reg_t which_counterh = CSR_HPMCOUNTER3H + i;
     mevent[i] = std::make_shared<mevent_csr_t>(proc, which_mevent);
-    auto mcounter = std::make_shared<const_csr_t>(proc, which_mcounter, 0);
+    auto mcounter = std::make_shared<basic_csr_t>(proc, which_mcounter, 0);
     add_csr(which_mcounter, mcounter);
 
     auto counter = std::make_shared<counter_proxy_csr_t>(proc, which_counter, mcounter);
