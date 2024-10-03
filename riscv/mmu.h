@@ -294,7 +294,7 @@ public:
     }
 
     reg_t paddr = translate(generate_access_info(vaddr, STORE, {}), 1);
-    if (sim->reservable(paddr))
+    if (!sim->reservable(paddr))
       return load_reservation_address == paddr;
     else
       throw trap_store_access_fault((proc) ? proc->state.v : false, vaddr, 0, 0);
