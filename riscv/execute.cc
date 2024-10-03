@@ -364,7 +364,7 @@ void processor_t::step(size_t n)
       // allows us to switch to other threads only once per idle loop in case
       // there is activity.
       n = ++instret;
-      in_wfi = true;
+      //in_wfi = true;
     }
 
     state.minstret->bump(instret);
