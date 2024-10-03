@@ -159,7 +159,7 @@ bool mmu_t::mmio(reg_t paddr, size_t len, uint8_t* bytes, access_type type)
     if (type == STORE)
       return sim->mmio_store(paddr, len, bytes);
     else
-      return sim->mmio_load(paddr, len, bytes);
+      return sim->mmio_mmu(paddr, len, bytes);
   }
 
   for (size_t i = 0; i < len; i++) {
@@ -214,7 +214,7 @@ void mmu_t::load_slow_path_intrapage(reg_t len, uint8_t* bytes, mem_access_info_
     else if (!access_info.flags.is_special_access())
       refill_tlb(addr, paddr, host_addr, LOAD);
 
-  } else if (!mmio_load(paddr, len, bytes)) {
+  } else if (!sim->mmio_load(paddr, len, bytes)) {
     throw trap_load_access_fault(access_info.effective_virt, transformed_addr, 0, 0);
   }
 
