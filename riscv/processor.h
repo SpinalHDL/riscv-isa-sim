@@ -19,7 +19,7 @@
 #include "vector_unit.h"
 
 #define FIRST_HPMCOUNTER 3
-#define N_HPMCOUNTERS 29
+#define N_HPMCOUNTERS 7 //29
 
 class processor_t;
 class mmu_t;
