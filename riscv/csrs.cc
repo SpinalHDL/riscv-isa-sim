@@ -1353,7 +1353,6 @@ dcsr_csr_t::dcsr_csr_t(processor_t* const proc, const reg_t addr):
   ebreaku(false),
   ebreakvs(false),
   ebreakvu(false),
-  halt(false),
   v(false),
   cause(0),
   ext_cause(0),

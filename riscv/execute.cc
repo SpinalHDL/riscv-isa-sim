@@ -218,7 +218,8 @@ void processor_t::step(size_t n)
       enter_debug_mode(DCSR_CAUSE_DEBUGINT, 0);
     } else if (halt_request == HR_GROUP) {
       enter_debug_mode(DCSR_CAUSE_GROUP, 0);
-    } else if (state.dcsr->halt) {
+    } else if (halt_on_reset) {
+      halt_on_reset = false;
       enter_debug_mode(DCSR_CAUSE_HALT, 0);
     }
   }
@@ -367,10 +368,12 @@ void processor_t::step(size_t n)
       //in_wfi = true;
     }
 
-    state.minstret->bump(instret);
+    if (!(state.mcountinhibit->read() & MCOUNTINHIBIT_IR))
+      state.minstret->bump(instret);
 
     // Model a hart whose CPI is 1.
-    state.mcycle->bump(instret);
+    if (!(state.mcountinhibit->read() & MCOUNTINHIBIT_CY))
+      state.mcycle->bump(instret);
 
     n -= instret;
   }

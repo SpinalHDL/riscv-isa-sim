@@ -19,7 +19,7 @@
 #define PGSHIFT 12
 const reg_t PGSIZE = 1 << PGSHIFT;
 const reg_t PGMASK = ~(PGSIZE-1);
-#define MAX_PADDR_BITS 56 // imposed by Sv39 / Sv48
+#define MAX_PADDR_BITS 64
 
 struct insn_fetch_t
 {
@@ -105,7 +105,7 @@ private:
 public:
   mmu_t(simif_t* sim, endianness_t endianness, processor_t* proc);
   ~mmu_t();
-  
+
   bool  fault_fetch = false;
   bool  fault_load = false;
   bool  fault_store = false;
@@ -264,14 +264,14 @@ public:
   }
 
   void clean_inval(reg_t addr, bool clean, bool inval) {
-    auto access_info = generate_access_info(addr, LOAD, {});
+    auto access_info = generate_access_info(addr, LOAD, {.clean_inval = true});
     reg_t transformed_addr = access_info.transformed_vaddr;
 
     auto base = transformed_addr & ~(blocksz - 1);
     for (size_t offset = 0; offset < blocksz; offset += 1)
       check_triggers(triggers::OPERATION_STORE, base + offset, false, transformed_addr, NullOpt);
     convert_load_traps_to_store_traps({
-      const reg_t paddr = translate(generate_access_info(transformed_addr, LOAD, {}), 1);
+      const reg_t paddr = translate(access_info, 1);
       if (sim->reservable(paddr)) {
         if (tracer.interested_in_range(paddr, paddr + PGSIZE, LOAD))
           tracer.clean_invalidate(paddr, blocksz, clean, inval);
