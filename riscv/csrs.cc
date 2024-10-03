@@ -1460,9 +1460,9 @@ reg_t composite_csr_t::read() const noexcept {
 }
 
 bool composite_csr_t::unlogged_write(const reg_t val) noexcept {
-  upper_csr->write(val >> upper_lsb);
-  lower_csr->write(val);
-  return false;  // logging is done only by the underlying CSRs
+  upper_csr->unlogged_write(val >> upper_lsb);
+  lower_csr->unlogged_write(val);
+  return true;  // logging is done only by the underlying CSRs
 }
 
 seed_csr_t::seed_csr_t(processor_t* const proc, const reg_t addr):
