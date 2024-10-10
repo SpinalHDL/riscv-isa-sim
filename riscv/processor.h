@@ -233,9 +233,9 @@ class opcode_cache_entry_t {
   {
     for (size_t i = 0; i < associativity; i++)
       if (tag[i] == opcode)
-        return std::tuple(true, contents[i]);
+        return std::tuple<bool, const insn_desc_t*>(true, contents[i]);
 
-    return std::tuple(false, nullptr);
+    return std::tuple<bool, const insn_desc_t*>(false, nullptr);
   }
 
  private:
