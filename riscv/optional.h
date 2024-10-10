@@ -149,6 +149,16 @@ public:
     T value_or(const T& default_value) const {
         return has_value_flag ? *data() : default_value;
     }
+
+    // == operator overload to compare with NullOpt
+    bool operator==(const NullOpt_t&) const noexcept {
+        return !has_value_flag; // If the Optional is empty, it is equal to NullOpt
+    }
+
+    // != operator overload to compare with NullOpt
+    bool operator!=(const NullOpt_t&) const noexcept {
+        return has_value_flag; // If the Optional contains a value, it is different from NullOpt
+    }
 };
 
 // Global use of NullOpt to signify the absence of a value

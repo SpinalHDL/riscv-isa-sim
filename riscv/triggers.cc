@@ -597,15 +597,15 @@ bool module_t::tdata3_write(unsigned index, const reg_t val) noexcept
   return true;
 }
 
-std::optional<match_result_t> module_t::detect_memory_access_match(operation_t operation, reg_t address, std::optional<reg_t> data) noexcept
+Optional<match_result_t> module_t::detect_memory_access_match(operation_t operation, reg_t address, Optional<reg_t> data) noexcept
 {
   state_t * const state = proc->get_state();
   if (state->debug_mode)
-    return std::nullopt;
+    return NullOpt;
 
   bool chain_ok = true;
 
-  std::optional<match_result_t> ret = std::nullopt;
+  Optional<match_result_t> ret = NullOpt;
   for (auto trigger: triggers) {
     if (!chain_ok) {
       chain_ok = !trigger->get_chain();
@@ -627,34 +627,34 @@ std::optional<match_result_t> module_t::detect_memory_access_match(operation_t o
   return ret;
 }
 
-std::optional<match_result_t> module_t::detect_icount_match() noexcept
+Optional<match_result_t> module_t::detect_icount_match() noexcept
 {
   for (auto trigger: triggers)
     trigger->stash_read_values();
 
   state_t * const state = proc->get_state();
   if (state->debug_mode)
-    return std::nullopt;
+    return NullOpt;
 
-  std::optional<match_result_t> ret = std::nullopt;
+  Optional<match_result_t> ret = NullOpt;
   for (auto trigger: triggers) {
     auto result = trigger->detect_icount_fire(proc);
     if (result.has_value() && (!ret.has_value() || ret->action < result->action))
       ret = result;
   }
-  if (ret == std::nullopt || ret->action != MCONTROL_ACTION_DEBUG_MODE)
+  if (ret == NullOpt || ret->action != MCONTROL_ACTION_DEBUG_MODE)
     for (auto trigger: triggers)
       trigger->detect_icount_decrement(proc);
   return ret;
 }
 
-std::optional<match_result_t> module_t::detect_trap_match(const trap_t& t) noexcept
+Optional<match_result_t> module_t::detect_trap_match(const trap_t& t) noexcept
 {
   state_t * const state = proc->get_state();
   if (state->debug_mode)
-    return std::nullopt;
+    return NullOpt;
 
-  std::optional<match_result_t> ret = std::nullopt;
+  Optional<match_result_t> ret = NullOpt;
   for (auto trigger: triggers) {
     auto result = trigger->detect_trap_match(proc, t);
     if (result.has_value() && (!ret.has_value() || ret->action < result->action))

@@ -41,10 +41,13 @@ struct tlb_entry_t {
 struct xlate_flags_t {
   // Existing constructors
   xlate_flags_t()
-      : forced_virt(false), hlvx(false), lr(false), ss_access(false) {}
+      : forced_virt(false), hlvx(false), lr(false), ss_access(false), clean_inval(false) {}
+
+  xlate_flags_t(bool forced_virt, bool hlvx, bool lr, bool ss_access, bool clean_inval)
+      : forced_virt(forced_virt), hlvx(hlvx), lr(lr), ss_access(ss_access), clean_inval(clean_inval) {}
 
   xlate_flags_t(bool forced_virt, bool hlvx, bool lr, bool ss_access)
-      : forced_virt(forced_virt), hlvx(hlvx), lr(lr), ss_access(ss_access) {}
+      : forced_virt(forced_virt), hlvx(hlvx), lr(lr), ss_access(ss_access), clean_inval(false) {}
 
   xlate_flags_t(std::initializer_list<bool> list) {
       auto it = list.begin();
@@ -52,28 +55,35 @@ struct xlate_flags_t {
       hlvx = (it != list.end()) ? *it++ : false;
       lr = (it != list.end()) ? *it++ : false;
       ss_access = (it != list.end()) ? *it++ : false;
+      clean_inval = (it != list.end()) ? *it++ : false;
   }
 
   // Method for checking if access is special
   bool is_special_access() const {
-      return forced_virt || hlvx || lr || ss_access;
+      return forced_virt || hlvx || lr || ss_access || clean_inval;
   }
   // Static methods added for easy instance creation
   static xlate_flags_t with_lr() {
-      return xlate_flags_t(false, false, true, false); // lr=true
+      return xlate_flags_t(false, false, true, false, false); // lr=true
   }
   static xlate_flags_t with_fv() {
-      return xlate_flags_t(true, false, false, false); // forced_virt=true
+      return xlate_flags_t(true, false, false, false, false); // forced_virt=true
   }
   static xlate_flags_t with_fv_hlvx() {
-      return xlate_flags_t(true, true, false, false); // orced_virt=true, hlvx=true
+      return xlate_flags_t(true, true, false, false, false); // orced_virt=true, hlvx=true
   }
-
+  static xlate_flags_t with_ss_access() {
+      return xlate_flags_t(false, false, false, true, false); // ss_access=true
+  }
+  static xlate_flags_t with_clean_inval() {
+      return xlate_flags_t(false, false, false, false, true); // clean_inval=true
+  }
   // Bits fields
   bool forced_virt : 1;
   bool hlvx : 1;
   bool lr : 1;
   bool ss_access : 1;
+  bool clean_inval : 1;
 };
 
 struct mem_access_info_t {
@@ -150,7 +160,7 @@ public:
   T ss_load(reg_t addr) {
     if ((addr & (sizeof(T) - 1)) != 0)
       throw trap_store_access_fault((proc) ? proc->state.v : false, addr, 0, 0);
-    return load<T>(addr, {.forced_virt=false, .hlvx=false, .lr=false, .ss_access=true});
+    return load<T>(addr, xlate_flags_t::with_ss_access());
   }
 
   template<typename T>
@@ -180,7 +190,7 @@ public:
   void ss_store(reg_t addr, T val) {
     if ((addr & (sizeof(T) - 1)) != 0)
       throw trap_store_access_fault((proc) ? proc->state.v : false, addr, 0, 0);
-    store<T>(addr, val, {.forced_virt=false, .hlvx=false, .lr=false, .ss_access=true});
+    store<T>(addr, val, xlate_flags_t::with_ss_access());
   }
 
   // AMO/Zicbom faults should be reported as store faults
@@ -264,7 +274,7 @@ public:
   }
 
   void clean_inval(reg_t addr, bool clean, bool inval) {
-    auto access_info = generate_access_info(addr, LOAD, {.clean_inval = true});
+    auto access_info = generate_access_info(addr, LOAD, xlate_flags_t::with_clean_inval());
     reg_t transformed_addr = access_info.transformed_vaddr;
 
     auto base = transformed_addr & ~(blocksz - 1);
