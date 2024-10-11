@@ -205,6 +205,7 @@ void mmu_t::load_slow_path_intrapage(reg_t len, uint8_t* bytes, mem_access_info_
 
   if (access_info.flags.lr && !sim->reservable(paddr)) {
     load_reservation_address = paddr;
+    //throw trap_load_access_fault(access_info.effective_virt, transformed_addr, 0, 0);
   }
 
   if (auto host_addr = sim->addr_to_mem(paddr)) {
