@@ -391,10 +391,13 @@ public:
 
   void register_memtracer(memtracer_t*);
 
-  int is_misaligned_enabled()
-  {
-    return proc && proc->get_cfg().misaligned;
-  }
+ int is_misaligned_enabled()
+{
+    if (proc) 
+      return proc->get_cfg().misaligned;
+    else 
+      return 0;
+}
 
   bool is_target_big_endian()
   {
