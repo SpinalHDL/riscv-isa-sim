@@ -53,8 +53,8 @@ void state_t::csr_init(processor_t* const proc, reg_t max_isa)
     csr_t_p minstreth, mcycleh;
     add_csr(CSR_MINSTRET, std::make_shared<rv32_low_csr_t>(proc, CSR_MINSTRET, minstret));
     add_csr(CSR_MINSTRETH, minstreth = std::make_shared<rv32_high_csr_t>(proc, CSR_MINSTRETH, minstret));
-    add_csr(CSR_MCYCLE, std::make_shared<rv32_low_csr_t>(proc, CSR_MCYCLE, mcycle));
-    add_csr(CSR_MCYCLEH, mcycleh = std::make_shared<rv32_high_csr_t>(proc, CSR_MCYCLEH, mcycle));
+    add_csr(CSR_MCYCLE, std::make_shared<rv32_low_csr_t>(proc, CSR_MCYCLE, minstret));
+    add_csr(CSR_MCYCLEH, mcycleh = std::make_shared<rv32_high_csr_t>(proc, CSR_MCYCLEH, minstreth));
     if (proc->extension_enabled_const(EXT_ZICNTR)) {
       auto timeh = std::make_shared<rv32_high_csr_t>(proc, CSR_TIMEH, time);
       add_csr(CSR_INSTRETH, std::make_shared<counter_proxy_csr_t>(proc, CSR_INSTRETH, minstreth));
