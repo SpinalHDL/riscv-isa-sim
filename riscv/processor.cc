@@ -26,7 +26,7 @@
 processor_t::processor_t(const char* isa, const char* priv, const char* varch,
                          simif_t* sim, uint32_t id, bool halt_on_reset,
                          FILE* log_file, std::ostream& sout_)
-  : debug(false), halt_request(HR_NONE), sim(sim), id(id), xlen(0),
+  : paddr_bits_sim(64), debug(false), halt_request(HR_NONE), sim(sim), id(id), xlen(0),
   histogram_enabled(false), log_commits_enabled(false),
   log_file(log_file), sout_(sout_.rdbuf()), halt_on_reset(halt_on_reset),
   extension_table(256, false), impl_table(256, false), last_pc(1), executions(1)
@@ -992,7 +992,7 @@ void processor_t::disasm(insn_t insn)
 int processor_t::paddr_bits()
 {
   assert(xlen == max_xlen);
-  return max_xlen == 64 ? 50 : 34;
+  return std::min(max_xlen == 64 ? 50 : 34, paddr_bits_sim);
 }
 
 void processor_t::set_csr(int which, reg_t val)

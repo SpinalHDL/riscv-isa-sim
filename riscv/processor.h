@@ -459,6 +459,8 @@ public:
   void set_mmu_capability(int cap);
 
   const char* get_symbol(uint64_t addr);
+  int paddr_bits();
+  int paddr_bits_sim;
 
 private:
   simif_t* sim;
@@ -489,7 +491,6 @@ private:
   void take_interrupt(reg_t mask); // take first enabled interrupt in mask
   void take_trap(trap_t& t, reg_t epc); // take an exception
   void disasm(insn_t insn); // disassemble and print an instruction
-  int paddr_bits();
 
   void enter_debug_mode(uint8_t cause);
 
