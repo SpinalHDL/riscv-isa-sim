@@ -13,21 +13,25 @@
 
 #include "disasm.h"
 #include "extension.h"
+#include "platform.h"
 
 using namespace std;
 
-int main(int argc, char** argv)
+int main(int UNUSED argc, char** argv)
 {
   string s;
-  const char* isa = DEFAULT_ISA;
+  const char* isa_string = DEFAULT_ISA;
 
   std::function<extension_t*()> extension;
   option_parser_t parser;
   parser.option(0, "extension", 1, [&](const char* s){extension = find_extension(s);});
-  parser.option(0, "isa", 1, [&](const char* s){isa = s;});
+  parser.option(0, "isa", 1, [&](const char* s){isa_string = s;});
   parser.parse(argv);
 
-  processor_t p(isa, DEFAULT_PRIV, DEFAULT_VARCH, 0, 0, false, nullptr, cerr);
+  cfg_t cfg;
+
+  isa_parser_t isa(isa_string, DEFAULT_PRIV);
+  processor_t p(isa_string, DEFAULT_PRIV, &cfg, 0, 0, false, nullptr, cerr);
   if (extension) {
     p.register_extension(extension());
   }

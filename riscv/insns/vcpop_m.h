@@ -2,8 +2,6 @@
 require(P.VU.vsew >= e8 && P.VU.vsew <= e64);
 require_vector(true);
 reg_t vl = P.VU.vl->read();
-reg_t sew = P.VU.vsew;
-reg_t rd_num = insn.rd();
 reg_t rs2_num = insn.rs2();
 require(P.VU.vstart->read() == 0);
 reg_t popcount = 0;
@@ -19,5 +17,4 @@ for (reg_t i=P.VU.vstart->read(); i<vl; ++i) {
     popcount += (vs2_lsb && do_mask);
   }
 }
-P.VU.vstart->write(0);
 WRITE_RD(popcount);

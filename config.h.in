@@ -6,15 +6,6 @@
 /* Define if subproject MCPPBS_SPROJ_NORM is enabled */
 #undef CUSTOMEXT_ENABLED
 
-/* Default value for --isa switch */
-#undef DEFAULT_ISA
-
-/* Default value for --priv switch */
-#undef DEFAULT_PRIV
-
-/* Default value for --varch switch */
-#undef DEFAULT_VARCH
-
 /* Define if subproject MCPPBS_SPROJ_NORM is enabled */
 #undef DISASM_ENABLED
 
@@ -33,8 +24,14 @@
 /* define if the Boost::ASIO library is available */
 #undef HAVE_BOOST_ASIO
 
+/* define if the Boost::Regex library is available */
+#undef HAVE_BOOST_REGEX
+
 /* Dynamic library loading is supported */
 #undef HAVE_DLOPEN
+
+/* __int128_t is supported */
+#undef HAVE_INT128
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
@@ -99,20 +96,8 @@
 /* Define if subproject MCPPBS_SPROJ_NORM is enabled */
 #undef RISCV_ENABLED
 
-/* Enable commit log generation */
-#undef RISCV_ENABLE_COMMITLOG
-
-/* Enable hardware management of PTE accessed and dirty bits */
-#undef RISCV_ENABLE_DIRTY
-
 /* Enable support for running target in either endianness */
 #undef RISCV_ENABLE_DUAL_ENDIAN
-
-/* Enable PC histogram generation */
-#undef RISCV_ENABLE_HISTOGRAM
-
-/* Enable hardware support for misaligned loads and stores */
-#undef RISCV_ENABLE_MISALIGNED
 
 /* Define if subproject MCPPBS_SPROJ_NORM is enabled */
 #undef SOFTFLOAT_ENABLED
@@ -126,7 +111,7 @@
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
-/* Default value for --with-target switch */
+/* Default value for --target switch */
 #undef TARGET_ARCH
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most

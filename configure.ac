@@ -1,7 +1,7 @@
 #=========================================================================
 # Toplevel configure.ac for the Modular C++ Build System
 #=========================================================================
-# Please read the documenation in 'mcppbs-doc.txt' for more details on
+# Please read the documentation in 'mcppbs-doc.txt' for more details on
 # how the Modular C++ Build System works. For most new projects, a
 # developer will only need to make the following changes:
 #
@@ -85,7 +85,9 @@ AC_HEADER_STDC
 # Checks for type
 #-------------------------------------------------------------------------
 
-AC_CHECK_TYPE([__int128_t], AC_SUBST([HAVE_INT128],[yes]))
+AC_CHECK_TYPE([__int128_t],
+              [AC_SUBST([HAVE_INT128],[yes])
+              AC_DEFINE([HAVE_INT128], [1], [__int128_t is supported])])
 
 #-------------------------------------------------------------------------
 # Default compiler flags
@@ -123,4 +125,5 @@ AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([riscv-fesvr.pc])
 AC_CONFIG_FILES([riscv-disasm.pc])
+AC_CONFIG_FILES([riscv-riscv.pc])
 AC_OUTPUT
