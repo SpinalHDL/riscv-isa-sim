@@ -259,9 +259,11 @@ public:
 
   void set_debug(bool value);
   void set_histogram(bool value);
+#ifdef RISCV_ENABLE_COMMITLOG
   void enable_log_commits();
   void disable_log_commits();
   bool get_log_commits_enabled() const { return log_commits_enabled; }
+#endif
   void reset();
   void step(size_t n); // run for n cycles
   void put_csr(int which, reg_t val);
@@ -369,6 +371,8 @@ public:
   void set_mmu_capability(int cap);
 
   const char* get_symbol(uint64_t addr);
+  int paddr_bits();
+  int paddr_bits_sim;
 
   void clear_waiting_for_interrupt() { in_wfi = false; };
   bool is_waiting_for_interrupt() { return in_wfi; };
@@ -413,7 +417,6 @@ private:
   void take_trigger_action(triggers::action_t action, reg_t breakpoint_tval, reg_t epc, bool virt);
   void disasm(insn_t insn); // disassemble and print an instruction
   void register_insn(insn_desc_t, bool);
-  int paddr_bits();
 
   void enter_debug_mode(uint8_t cause, uint8_t ext_cause);
 

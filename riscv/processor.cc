@@ -34,7 +34,7 @@ processor_t::processor_t(const char* isa_str, const char* priv_str,
                          const cfg_t *cfg,
                          simif_t* sim, uint32_t id, bool halt_on_reset,
                          FILE* log_file, std::ostream& sout_)
-: debug(false), halt_request(HR_NONE), isa(isa_str, priv_str), cfg(cfg), sim(sim), id(id), xlen(0),
+: paddr_bits_sim(64), debug(false), halt_request(HR_NONE), isa(isa_str, priv_str), cfg(cfg), sim(sim), id(id), xlen(0),
   histogram_enabled(false), log_commits_enabled(false),
   log_file(log_file), sout_(sout_.rdbuf()), halt_on_reset(halt_on_reset),
   in_wfi(false), check_triggers_icount(false),
@@ -624,7 +624,7 @@ int processor_t::paddr_bits()
 {
   unsigned max_xlen = isa.get_max_xlen();
   assert(xlen == max_xlen);
-  return max_xlen == 64 ? 50 : 34;
+  return std::min(max_xlen == 64 ? 50 : 34, paddr_bits_sim);
 }
 
 void processor_t::put_csr(int which, reg_t val)
