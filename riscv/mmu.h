@@ -194,6 +194,9 @@ public:
     template<typename op> \
     type##_t amo_##type(reg_t addr, op f) { \
       try { \
+    	if (unlikely(addr & (sizeof(type##_t)-1))) \
+    	   misaligned_store(addr, 0, sizeof(type##_t), 0); \
+    	translate(addr, sizeof(type##_t), STORE, 0); \
         auto lhs = load_##type(addr, true); \
         store_##type(addr, f(lhs)); \
         return lhs; \
