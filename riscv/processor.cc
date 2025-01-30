@@ -393,7 +393,7 @@ void state_t::reset(processor_t* const proc, reg_t max_isa)
     csrmap[which_mcounter] = mcounter;
     csrmap[which_counter] = counter;
     if (xlen == 32) {
-      auto mcounterh = std::make_shared<const_csr_t>(proc, which_mcounterh, 0);
+      auto mcounterh = std::make_shared<basic_csr_t>(proc, which_mcounterh, 0);
       auto counterh = std::make_shared<counter_proxy_csr_t>(proc, which_counterh, mcounterh);
       csrmap[which_mcounterh] = mcounterh;
       csrmap[which_counterh] = counterh;
