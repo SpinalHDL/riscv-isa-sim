@@ -286,7 +286,7 @@ reg_t tvec_csr_t::read() const noexcept {
 
 
 bool tvec_csr_t::unlogged_write(const reg_t val) noexcept {
-  this->val = val & ~(reg_t)2;
+  this->val = val & ~(reg_t)3;
   return true;
 }
 
