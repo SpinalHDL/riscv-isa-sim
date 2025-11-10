@@ -543,6 +543,13 @@ void state_t::reset(processor_t* const proc, reg_t max_isa)
 
   serialized = false;
 
+  for(int i = 0;i < 32;i++){
+	  freg_t v;
+	  v.v[0] = proc->get_flen() == 32 ? 0xFFFFFFFF00000000l : 0;
+	  v.v[1] = 0xFFFFFFFFFFFFFFFFl;
+	  FPR.write(i, v);
+  }
+
 #ifdef RISCV_ENABLE_COMMITLOG
   log_reg_write.clear();
   log_mem_read.clear();
