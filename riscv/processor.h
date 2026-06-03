@@ -244,8 +244,10 @@ public:
   void set_debug(bool value);
   void set_histogram(bool value);
   void enable_log_commits();
+  void enable_commit_log_state();
   void disable_log_commits();
   bool get_log_commits_enabled() const { return log_commits_enabled; }
+  bool get_log_commits_print_enabled() const { return log_commits_print_enabled; }
   void reset();
   void step(size_t n); // run for n cycles
   void put_csr(int which, reg_t val);
@@ -382,6 +384,7 @@ private:
   unsigned max_vaddr_bits;
   bool histogram_enabled;
   bool log_commits_enabled;
+  bool log_commits_print_enabled;
   FILE *log_file;
   std::ostream sout_; // needed for socket command interface -s, also used for -d and -l, but not for --log
   bool halt_on_reset;

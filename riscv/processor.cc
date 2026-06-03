@@ -46,7 +46,7 @@ processor_t::processor_t(const char* isa_str, const char* priv_str,
                          FILE* log_file, std::ostream& sout_)
 : debug(false), halt_request(HR_NONE), isa(isa_str, priv_str), cfg(cfg),
   sim(sim), id(id), xlen(isa.get_max_xlen()),
-  histogram_enabled(false), log_commits_enabled(false),
+  histogram_enabled(false), log_commits_enabled(false), log_commits_print_enabled(false),
   log_file(log_file), sout_(sout_.rdbuf()), halt_on_reset(halt_on_reset),
   in_wfi(false), check_triggers_icount(false),
   impl_table(256, false), extension_enable_table(isa.get_extension_table()),
@@ -157,6 +157,12 @@ void processor_t::set_histogram(bool value)
 
 void processor_t::enable_log_commits()
 {
+  log_commits_print_enabled = true;
+  enable_commit_log_state();
+}
+
+void processor_t::enable_commit_log_state()
+{
   log_commits_enabled = true;
   mmu->flush_tlb(); // the TLB caches this setting
   build_opcode_map();
@@ -165,6 +171,7 @@ void processor_t::enable_log_commits()
 void processor_t::disable_log_commits()
 {
   log_commits_enabled = false;
+  log_commits_print_enabled = false;
   mmu->flush_tlb(); // the TLB caches this setting
   build_opcode_map();
 }

@@ -175,18 +175,18 @@ static inline reg_t execute_insn_logged(processor_t* p, reg_t pc, insn_fetch_t f
   try {
     npc = fetch.func(p, fetch.insn, pc);
     if (npc != PC_SERIALIZE_BEFORE) {
-      if (p->get_log_commits_enabled()) {
+      if (p->get_log_commits_print_enabled()) {
         commit_log_print_insn(p, pc, fetch.insn);
       }
      }
   } catch (wait_for_interrupt_t &t) {
-      if (p->get_log_commits_enabled()) {
+      if (p->get_log_commits_print_enabled()) {
         commit_log_print_insn(p, pc, fetch.insn);
       }
       throw;
   } catch(mem_trap_t& t) {
       //handle segfault in midlle of vector load/store
-      if (p->get_log_commits_enabled()) {
+      if (p->get_log_commits_print_enabled()) {
         for (auto item : p->get_state()->log_reg_write) {
           if ((item.first & 3) == 3) {
             commit_log_print_insn(p, pc, fetch.insn);
