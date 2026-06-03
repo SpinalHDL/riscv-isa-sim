@@ -215,6 +215,10 @@ struct state_t
   reg_t last_inst_priv;
   int last_inst_xlen;
   int last_inst_flen;
+  insn_t last_inst;
+  bool trap_happened;
+  bool trap_interrupt;
+  uint64_t trap_code;
 
   elp_t elp;
 
@@ -240,6 +244,7 @@ public:
   void set_debug(bool value);
   void set_histogram(bool value);
   void enable_log_commits();
+  void disable_log_commits();
   bool get_log_commits_enabled() const { return log_commits_enabled; }
   void reset();
   void step(size_t n); // run for n cycles

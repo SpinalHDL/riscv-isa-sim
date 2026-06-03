@@ -118,6 +118,10 @@ void state_t::reset(processor_t* const proc, reg_t max_isa)
   last_inst_priv = 0;
   last_inst_xlen = 0;
   last_inst_flen = 0;
+  last_inst = insn_t(0);
+  trap_happened = false;
+  trap_interrupt = false;
+  trap_code = 0;
 
   elp = elp_t::NO_LP_EXPECTED;
 
@@ -142,6 +146,13 @@ void processor_t::set_histogram(bool value)
 void processor_t::enable_log_commits()
 {
   log_commits_enabled = true;
+  mmu->flush_tlb(); // the TLB caches this setting
+  build_opcode_map();
+}
+
+void processor_t::disable_log_commits()
+{
+  log_commits_enabled = false;
   mmu->flush_tlb(); // the TLB caches this setting
   build_opcode_map();
 }
@@ -386,6 +397,9 @@ void processor_t::enter_debug_mode(uint8_t cause, uint8_t extcause)
 
 void processor_t::debug_output_log(std::stringstream *s)
 {
+  if (!get_log_commits_enabled())
+    return;
+
   if (log_file == stderr) {
     std::ostream out(sout_.rdbuf());
     out << s->str(); // handles command line options -d -s -l
@@ -425,6 +439,9 @@ void processor_t::take_trap(trap_t& t, reg_t epc)
   bool curr_virt = state.v;
   const reg_t interrupt_bit = (reg_t)1 << (max_xlen - 1);
   bool interrupt = (bit & interrupt_bit) != 0;
+  state.trap_happened = true;
+  state.trap_interrupt = interrupt;
+  state.trap_code = bit & ~interrupt_bit;
   bool supv_double_trap = false;
   if (interrupt) {
     vsdeleg = (curr_virt && state.prv <= PRV_S) ? state.hideleg->read() : 0;
