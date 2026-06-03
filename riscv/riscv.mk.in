@@ -913,6 +913,7 @@ riscv_insn_priv = \
 	mret \
 	sfence_vma \
 	sret \
+	flush_data \
 	wfi \
 
 riscv_insn_smrnmi = \
