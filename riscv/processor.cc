@@ -30,6 +30,16 @@
 #undef STATE
 #define STATE state
 
+static void reset_fprs_for_vexii(state_t* state, processor_t* const proc)
+{
+  for (int i = 0; i < NFPR; i++) {
+    freg_t v;
+    v.v[0] = proc->get_flen() == 32 ? UINT64_C(0xFFFFFFFF00000000) : 0;
+    v.v[1] = UINT64_C(0xFFFFFFFFFFFFFFFF);
+    state->FPR.write(i, v);
+  }
+}
+
 processor_t::processor_t(const char* isa_str, const char* priv_str,
                          const cfg_t *cfg,
                          simif_t* sim, uint32_t id, bool halt_on_reset,
@@ -44,6 +54,7 @@ processor_t::processor_t(const char* isa_str, const char* priv_str,
 {
   VU.p = this;
   TM.proc = this;
+  paddr_bits_sim = 64;
 
 #ifndef HAVE_INT128
   if (isa.has_any_vector()) {
@@ -128,6 +139,7 @@ void state_t::reset(processor_t* const proc, reg_t max_isa)
   critical_error = false;
 
   csr_init(proc, max_isa);
+  reset_fprs_for_vexii(this, proc);
 }
 
 void processor_t::set_debug(bool value)

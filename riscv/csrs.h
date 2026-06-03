@@ -42,6 +42,7 @@ class csr_t {
   // permission checking needed or allowed.
   // Child classes must implement unlogged_write()
   void write(const reg_t val) noexcept;
+  bool unlogged_backdoor_write(const reg_t val) noexcept { return unlogged_write(val); }
 
   virtual ~csr_t();
 

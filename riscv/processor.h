@@ -255,7 +255,7 @@ public:
   mmu_t* get_mmu() { return mmu; }
   state_t* get_state() { return &state; }
   unsigned get_xlen() const { return xlen; }
-  unsigned paddr_bits() { return isa.get_max_xlen() == 64 ? 56 : 34; }
+  unsigned paddr_bits() { return std::min(isa.get_max_xlen() == 64 ? 56u : 34u, (unsigned)paddr_bits_sim); }
   unsigned get_const_xlen() const {
     // Any code that assumes a const xlen should use this method to
     // document that assumption. If Spike ever changes to allow
@@ -424,6 +424,7 @@ private:
 public:
   entropy_source es; // Crypto ISE Entropy source.
 
+  int paddr_bits_sim;
   reg_t n_pmp;
   reg_t lg_pmp_granularity;
   reg_t pmp_tor_mask() { return -(reg_t(1) << (lg_pmp_granularity - PMP_SHIFT)); }
