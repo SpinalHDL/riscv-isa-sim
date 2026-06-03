@@ -1139,14 +1139,8 @@ void medeleg_csr_t::verify_permissions(insn_t insn, bool write) const {
 
 bool medeleg_csr_t::unlogged_write(const reg_t val) noexcept {
   const reg_t mask = 0
-    | (proc->extension_enabled(EXT_ZCA) ? 0 : 1 << CAUSE_MISALIGNED_FETCH)
-    | (1 << CAUSE_FETCH_ACCESS)
-    | (1 << CAUSE_ILLEGAL_INSTRUCTION)
+    | (1 << CAUSE_MISALIGNED_FETCH)
     | (1 << CAUSE_BREAKPOINT)
-    | (1 << CAUSE_MISALIGNED_LOAD)
-    | (1 << CAUSE_LOAD_ACCESS)
-    | (1 << CAUSE_MISALIGNED_STORE) 
-    | (1 << CAUSE_STORE_ACCESS)
     | (1 << CAUSE_USER_ECALL)
     | (1 << CAUSE_SUPERVISOR_ECALL)
     | (proc->has_mmu() ? mmu_exceptions : 0)
@@ -1156,7 +1150,7 @@ bool medeleg_csr_t::unlogged_write(const reg_t val) noexcept {
     | (proc->extension_enabled(EXT_ZICNTR)?
         (1 << CAUSE_HARDWARE_ERROR_FAULT) : 0)
     ;
-  return basic_csr_t::unlogged_write(val & mask);
+  return basic_csr_t::unlogged_write((read() & ~mask) | (val & mask));
 }
 
 sip_csr_t::sip_csr_t(processor_t* const proc, const reg_t addr, generic_int_accessor_t_p accr):
