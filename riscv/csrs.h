@@ -376,6 +376,7 @@ class mip_or_mie_csr_t: public csr_t {
   virtual reg_t read() const noexcept override;
 
   virtual void write_with_mask(const reg_t mask, const reg_t val) noexcept;
+  void unlogged_write_with_mask(const reg_t mask, const reg_t val) noexcept;
 
  protected:
   virtual bool unlogged_write(const reg_t val) noexcept override final;
