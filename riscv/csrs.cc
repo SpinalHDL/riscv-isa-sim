@@ -554,7 +554,7 @@ reg_t tvec_csr_t::read() const noexcept {
 }
 
 bool tvec_csr_t::unlogged_write(const reg_t val) noexcept {
-  this->val = val & ~(reg_t)2;
+  this->val = val & ~(reg_t)3;
   return true;
 }
 
@@ -944,6 +944,10 @@ void mip_or_mie_csr_t::write_with_mask(const reg_t mask, const reg_t val) noexce
   log_write();
 }
 
+void mip_or_mie_csr_t::unlogged_write_with_mask(const reg_t mask, const reg_t val) noexcept {
+  this->val = (this->val & ~mask) | (val & mask);
+}
+
 bool mip_or_mie_csr_t::unlogged_write(const reg_t val) noexcept {
   write_with_mask(write_mask(), val);
   return false; // avoid double logging: already logged by write_with_mask()
@@ -1135,14 +1139,8 @@ void medeleg_csr_t::verify_permissions(insn_t insn, bool write) const {
 
 bool medeleg_csr_t::unlogged_write(const reg_t val) noexcept {
   const reg_t mask = 0
-    | (proc->extension_enabled(EXT_ZCA) ? 0 : 1 << CAUSE_MISALIGNED_FETCH)
-    | (1 << CAUSE_FETCH_ACCESS)
-    | (1 << CAUSE_ILLEGAL_INSTRUCTION)
+    | (1 << CAUSE_MISALIGNED_FETCH)
     | (1 << CAUSE_BREAKPOINT)
-    | (1 << CAUSE_MISALIGNED_LOAD)
-    | (1 << CAUSE_LOAD_ACCESS)
-    | (1 << CAUSE_MISALIGNED_STORE) 
-    | (1 << CAUSE_STORE_ACCESS)
     | (1 << CAUSE_USER_ECALL)
     | (1 << CAUSE_SUPERVISOR_ECALL)
     | (proc->has_mmu() ? mmu_exceptions : 0)
@@ -1152,7 +1150,7 @@ bool medeleg_csr_t::unlogged_write(const reg_t val) noexcept {
     | (proc->extension_enabled(EXT_ZICNTR)?
         (1 << CAUSE_HARDWARE_ERROR_FAULT) : 0)
     ;
-  return basic_csr_t::unlogged_write(val & mask);
+  return basic_csr_t::unlogged_write((read() & ~mask) | (val & mask));
 }
 
 sip_csr_t::sip_csr_t(processor_t* const proc, const reg_t addr, generic_int_accessor_t_p accr):

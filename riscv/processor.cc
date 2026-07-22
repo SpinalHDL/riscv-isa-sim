@@ -30,13 +30,23 @@
 #undef STATE
 #define STATE state
 
+static void reset_fprs_for_vexii(state_t* state, processor_t* const proc)
+{
+  for (int i = 0; i < NFPR; i++) {
+    freg_t v;
+    v.v[0] = proc->get_flen() == 32 ? UINT64_C(0xFFFFFFFF00000000) : 0;
+    v.v[1] = UINT64_C(0xFFFFFFFFFFFFFFFF);
+    state->FPR.write(i, v);
+  }
+}
+
 processor_t::processor_t(const char* isa_str, const char* priv_str,
                          const cfg_t *cfg,
                          simif_t* sim, uint32_t id, bool halt_on_reset,
                          FILE* log_file, std::ostream& sout_)
 : debug(false), halt_request(HR_NONE), isa(isa_str, priv_str), cfg(cfg),
   sim(sim), id(id), xlen(isa.get_max_xlen()),
-  histogram_enabled(false), log_commits_enabled(false),
+  histogram_enabled(false), log_commits_enabled(false), log_commits_print_enabled(false),
   log_file(log_file), sout_(sout_.rdbuf()), halt_on_reset(halt_on_reset),
   in_wfi(false), check_triggers_icount(false),
   impl_table(256, false), extension_enable_table(isa.get_extension_table()),
@@ -44,6 +54,7 @@ processor_t::processor_t(const char* isa_str, const char* priv_str,
 {
   VU.p = this;
   TM.proc = this;
+  paddr_bits_sim = 64;
 
 #ifndef HAVE_INT128
   if (isa.has_any_vector()) {
@@ -118,12 +129,17 @@ void state_t::reset(processor_t* const proc, reg_t max_isa)
   last_inst_priv = 0;
   last_inst_xlen = 0;
   last_inst_flen = 0;
+  last_inst = insn_t(0);
+  trap_happened = false;
+  trap_interrupt = false;
+  trap_code = 0;
 
   elp = elp_t::NO_LP_EXPECTED;
 
   critical_error = false;
 
   csr_init(proc, max_isa);
+  reset_fprs_for_vexii(this, proc);
 }
 
 void processor_t::set_debug(bool value)
@@ -141,7 +157,21 @@ void processor_t::set_histogram(bool value)
 
 void processor_t::enable_log_commits()
 {
+  log_commits_print_enabled = true;
+  enable_commit_log_state();
+}
+
+void processor_t::enable_commit_log_state()
+{
   log_commits_enabled = true;
+  mmu->flush_tlb(); // the TLB caches this setting
+  build_opcode_map();
+}
+
+void processor_t::disable_log_commits()
+{
+  log_commits_enabled = false;
+  log_commits_print_enabled = false;
   mmu->flush_tlb(); // the TLB caches this setting
   build_opcode_map();
 }
@@ -386,6 +416,9 @@ void processor_t::enter_debug_mode(uint8_t cause, uint8_t extcause)
 
 void processor_t::debug_output_log(std::stringstream *s)
 {
+  if (!get_log_commits_enabled())
+    return;
+
   if (log_file == stderr) {
     std::ostream out(sout_.rdbuf());
     out << s->str(); // handles command line options -d -s -l
@@ -425,6 +458,9 @@ void processor_t::take_trap(trap_t& t, reg_t epc)
   bool curr_virt = state.v;
   const reg_t interrupt_bit = (reg_t)1 << (max_xlen - 1);
   bool interrupt = (bit & interrupt_bit) != 0;
+  state.trap_happened = true;
+  state.trap_interrupt = interrupt;
+  state.trap_code = bit & ~interrupt_bit;
   bool supv_double_trap = false;
   if (interrupt) {
     vsdeleg = (curr_virt && state.prv <= PRV_S) ? state.hideleg->read() : 0;

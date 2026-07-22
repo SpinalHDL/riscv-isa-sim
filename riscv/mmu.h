@@ -485,7 +485,7 @@ private:
     target_endian<T> target_pte;
     if (host_pte_addr) {
       memcpy(&target_pte, host_pte_addr, ptesize);
-    } else if (!mmio_load(pte_paddr, ptesize, (uint8_t*)&target_pte)) {
+    } else if (!sim->mmio_mmu(pte_paddr, ptesize, (uint8_t*)&target_pte)) {
       throw_access_exception(virt, addr, trap_type);
     }
 

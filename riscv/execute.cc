@@ -159,10 +159,12 @@ inline void processor_t::update_histogram(reg_t pc)
 // These two functions are expected to be inlined by the compiler separately in
 // the processor_t::step() loop. The logged variant is used in the slow path
 static inline reg_t execute_insn_fast(processor_t* p, reg_t pc, insn_fetch_t fetch) {
+  p->get_state()->last_inst = fetch.insn;
   return fetch.func(p, fetch.insn, pc);
 }
 static inline reg_t execute_insn_logged(processor_t* p, reg_t pc, insn_fetch_t fetch)
 {
+  p->get_state()->last_inst = fetch.insn;
   if (p->get_log_commits_enabled()) {
     commit_log_reset(p);
     commit_log_stash_privilege(p);
@@ -173,18 +175,18 @@ static inline reg_t execute_insn_logged(processor_t* p, reg_t pc, insn_fetch_t f
   try {
     npc = fetch.func(p, fetch.insn, pc);
     if (npc != PC_SERIALIZE_BEFORE) {
-      if (p->get_log_commits_enabled()) {
+      if (p->get_log_commits_print_enabled()) {
         commit_log_print_insn(p, pc, fetch.insn);
       }
      }
   } catch (wait_for_interrupt_t &t) {
-      if (p->get_log_commits_enabled()) {
+      if (p->get_log_commits_print_enabled()) {
         commit_log_print_insn(p, pc, fetch.insn);
       }
       throw;
   } catch(mem_trap_t& t) {
       //handle segfault in midlle of vector load/store
-      if (p->get_log_commits_enabled()) {
+      if (p->get_log_commits_print_enabled()) {
         for (auto item : p->get_state()->log_reg_write) {
           if ((item.first & 3) == 3) {
             commit_log_print_insn(p, pc, fetch.insn);
@@ -211,6 +213,7 @@ bool processor_t::slow_path() const
 void processor_t::step(size_t n)
 {
   mmu_t* _mmu = mmu;
+  state.trap_happened = false;
 
   if (!state.debug_mode) {
     if (halt_request == HR_REGULAR) {

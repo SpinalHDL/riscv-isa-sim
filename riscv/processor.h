@@ -215,6 +215,10 @@ struct state_t
   reg_t last_inst_priv;
   int last_inst_xlen;
   int last_inst_flen;
+  insn_t last_inst;
+  bool trap_happened;
+  bool trap_interrupt;
+  uint64_t trap_code;
 
   elp_t elp;
 
@@ -240,7 +244,10 @@ public:
   void set_debug(bool value);
   void set_histogram(bool value);
   void enable_log_commits();
+  void enable_commit_log_state();
+  void disable_log_commits();
   bool get_log_commits_enabled() const { return log_commits_enabled; }
+  bool get_log_commits_print_enabled() const { return log_commits_print_enabled; }
   void reset();
   void step(size_t n); // run for n cycles
   void put_csr(int which, reg_t val);
@@ -250,7 +257,7 @@ public:
   mmu_t* get_mmu() { return mmu; }
   state_t* get_state() { return &state; }
   unsigned get_xlen() const { return xlen; }
-  unsigned paddr_bits() { return isa.get_max_xlen() == 64 ? 56 : 34; }
+  unsigned paddr_bits() { return std::min(isa.get_max_xlen() == 64 ? 56u : 34u, (unsigned)paddr_bits_sim); }
   unsigned get_const_xlen() const {
     // Any code that assumes a const xlen should use this method to
     // document that assumption. If Spike ever changes to allow
@@ -377,6 +384,7 @@ private:
   unsigned max_vaddr_bits;
   bool histogram_enabled;
   bool log_commits_enabled;
+  bool log_commits_print_enabled;
   FILE *log_file;
   std::ostream sout_; // needed for socket command interface -s, also used for -d and -l, but not for --log
   bool halt_on_reset;
@@ -419,6 +427,7 @@ private:
 public:
   entropy_source es; // Crypto ISE Entropy source.
 
+  int paddr_bits_sim;
   reg_t n_pmp;
   reg_t lg_pmp_granularity;
   reg_t pmp_tor_mask() { return -(reg_t(1) << (lg_pmp_granularity - PMP_SHIFT)); }
