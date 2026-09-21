@@ -99,17 +99,11 @@ inline mmu_t::insn_parcel_t mmu_t::perform_intrapage_fetch(reg_t vaddr, uintptr_
   else if (!mmio_fetch(paddr, sizeof(res), (uint8_t*)&res))
     throw trap_instruction_access_fault(proc->state.v, vaddr, 0, 0);
 
-  return res;
+  return from_le(res);
 }
 
 mmu_t::insn_parcel_t mmu_t::fetch_slow_path(reg_t vaddr)
 {
-  if (matched_trigger) {
-    auto trig = matched_trigger.value();
-    matched_trigger.reset();
-    throw trig;
-  }
-
   if  (auto [tlb_hit, host_addr, paddr] = access_tlb(tlb_insn, vaddr, TLB_FLAGS & ~TLB_CHECK_TRIGGERS); tlb_hit) {
     // Fast path for simple cases
     return perform_intrapage_fetch(vaddr, host_addr, paddr);
@@ -137,15 +131,7 @@ mmu_t::insn_parcel_t mmu_t::fetch_slow_path(reg_t vaddr)
     refill_tlb(vaddr, paddr, (char*)host_addr, FETCH);
   }
 
-  auto res = perform_intrapage_fetch(vaddr, host_addr, paddr);
-
-  if (!check_triggers_fetch)
-    return res;
-
-  check_triggers(triggers::OPERATION_EXECUTE, vaddr,
-    access_info.effective_virt, sizeof(insn_parcel_t), from_le(res));
-
-  return res;
+  return perform_intrapage_fetch(vaddr, host_addr, paddr);
 }
 
 static reg_t reg_from_bytes(size_t len, const uint8_t* bytes)
@@ -158,20 +144,8 @@ static reg_t reg_from_bytes(size_t len, const uint8_t* bytes)
   return res;
 }
 
-bool mmu_t::mmio_ok(reg_t paddr, size_t len, access_type UNUSED type)
-{
-  // Disallow access to debug region when not in debug mode
-  if (proc && sim && sim->is_debug_module_access(paddr, len) && !proc->state.debug_mode)
-    return false;
-
-  return true;
-}
-
 bool mmu_t::mmio_fetch(reg_t paddr, size_t len, uint8_t* bytes)
 {
-  if (!mmio_ok(paddr, len, FETCH))
-    return false;
-
   return sim->mmio_fetch(paddr, len, bytes);
 }
 
@@ -191,9 +165,6 @@ bool mmu_t::mmio(reg_t paddr, size_t len, uint8_t* bytes, access_type type)
   bool naturally_aligned = (paddr & (len - 1)) == 0;
 
   if (power_of_2 && naturally_aligned) {
-    if (!mmio_ok(paddr, len, type))
-      return false;
-
     if (type == STORE)
       return sim->mmio_store(paddr, len, bytes);
     else
@@ -237,9 +208,9 @@ void mmu_t::check_triggers(triggers::operation_t operation, reg_t address, bool 
 
     case triggers::TIMING_AFTER:
       // We want to take this exception on the next instruction.  We check
-      // whether to do so in the I$ refill slow path, which we can force by
-      // flushing the TLB.
-      flush_tlb();
+      // whether to do so outside of the main simulation loop, which we can
+      // force by flushing the I$.
+      flush_icache();
       matched_trigger = triggers::matched_t(operation, address, match->action, virt);
   }
 }
@@ -307,20 +278,22 @@ void mmu_t::load_slow_path(reg_t original_addr, std::size_t len,
     check_triggers(triggers::OPERATION_LOAD,
       transformed_addr, access_info.effective_virt, len);
 
+  if (access_info.flags.access_fault)
+    throw trap_load_access_fault(access_info.effective_virt, transformed_addr, 0, 0);
+
   if ((transformed_addr & (len - 1)) == 0) {
     load_slow_path_intrapage(len, bytes, access_info);
   } else {
-    bool gva = access_info.effective_virt;
     if (!is_misaligned_enabled())
-      throw trap_load_address_misaligned(gva, transformed_addr, 0, 0);
+      throw trap_load_address_misaligned(access_info.effective_virt, transformed_addr, 0, 0);
 
-    if (access_info.flags.lr)
-      throw trap_load_access_fault(gva, transformed_addr, 0, 0);
+    if (access_info.flags.require_alignment)
+      throw trap_load_access_fault(access_info.effective_virt, transformed_addr, 0, 0);
 
     reg_t len_page0 = std::min<reg_t>(len, PGSIZE - transformed_addr % PGSIZE);
     load_slow_path_intrapage(len_page0, bytes, access_info);
     if (len_page0 != len) {
-      auto tail_access_info = generate_access_info(original_addr + len_page0, LOAD, xlate_flags);
+      auto tail_access_info = generate_access_info(original_addr + len_page0, LOAD, access_info.flags);
       load_slow_path_intrapage(len - len_page0, bytes + len_page0, tail_access_info);
     }
   }
@@ -375,14 +348,14 @@ void mmu_t::store_slow_path_intrapage(reg_t len, const uint8_t* bytes, mem_acces
 
 void mmu_t::store_slow_path(reg_t original_addr, std::size_t len,
     const std::uint8_t* bytes, xlate_flags_t xlate_flags,
-    bool actually_store, bool require_alignment)
+    bool actually_store)
 {
   if (likely(!xlate_flags.is_special_access())) {
     // Fast path for simple cases
     auto [tlb_hit, host_addr, paddr] = access_tlb(tlb_store, original_addr, TLB_FLAGS & ~TLB_CHECK_TRIGGERS);
     bool intrapage = (original_addr % PGSIZE) + len <= PGSIZE;
     bool aligned = (original_addr & (len - 1)) == 0;
-    bool misaligned_ok = !require_alignment && intrapage && is_misaligned_enabled();
+    bool misaligned_ok = intrapage && is_misaligned_enabled();
 
     if (likely(tlb_hit && (aligned || misaligned_ok))) {
       if (actually_store)
@@ -404,18 +377,20 @@ void mmu_t::store_slow_path(reg_t original_addr, std::size_t len,
     }
   }
 
-  if (transformed_addr & (len - 1)) {
-    bool gva = access_info.effective_virt;
-    if (!is_misaligned_enabled())
-      throw trap_store_address_misaligned(gva, transformed_addr, 0, 0);
+  if (access_info.flags.access_fault)
+    throw trap_store_access_fault(access_info.effective_virt, transformed_addr, 0, 0);
 
-    if (require_alignment)
-      throw trap_store_access_fault(gva, transformed_addr, 0, 0);
+  if (transformed_addr & (len - 1)) {
+    if (!is_misaligned_enabled())
+      throw trap_store_address_misaligned(access_info.effective_virt, transformed_addr, 0, 0);
+
+    if (access_info.flags.require_alignment)
+      throw trap_store_access_fault(access_info.effective_virt, transformed_addr, 0, 0);
 
     reg_t len_page0 = std::min<reg_t>(len, PGSIZE - transformed_addr % PGSIZE);
     store_slow_path_intrapage(len_page0, bytes, access_info, actually_store);
     if (len_page0 != len) {
-      auto tail_access_info = generate_access_info(original_addr + len_page0, STORE, xlate_flags);
+      auto tail_access_info = generate_access_info(original_addr + len_page0, STORE, access_info.flags);
       store_slow_path_intrapage(len - len_page0, bytes + len_page0, tail_access_info, actually_store);
     }
   } else {
@@ -533,13 +508,13 @@ std::optional<base_pmpaddr_csr_t*> mmu_t::pmp_lookup(reg_t addr, reg_t len, size
 
 bool mmu_t::pmp_ok(reg_t addr, reg_t len, access_type type, reg_t mode, bool hlvx)
 {
-  if (!proc || proc->n_pmp == 0)
-    return true;
-
   // The debug module implementation relies on firmware (ROM) owned by spike.
-  // When executing code from this firmware we keep target PMP rules from
-  // blocking the simulator-owned debug firmware.
-  if (proc->state.debug_mode && sim && sim->is_debug_module_access(addr, len))
+  // The Debug Module address region is hidden from normal software.
+  // A hart can access it only in debug mode.
+  if (proc && sim && sim->is_debug_module_access(addr, len))
+    return proc->state.debug_mode;
+
+  if (!proc || proc->n_pmp == 0)
     return true;
 
   if (auto pmp = pmp_lookup(addr, len, 0, proc->n_pmp); pmp.has_value())
@@ -571,7 +546,10 @@ reg_t mmu_t::pmp_homogeneous(reg_t addr, reg_t len)
   if (!proc)
     return true;
 
-  for (size_t i = 0; i < proc->n_pmp; i++)
+  const size_t pmp_num = proc->extension_enabled_const(EXT_SSPMP)
+                           ? proc->state.max_pmp : proc->n_pmp;
+
+  for (size_t i = 0; i < pmp_num; i++)
     if (proc->state.pmpaddr[i]->subset_match(addr, len))
       return false;
 

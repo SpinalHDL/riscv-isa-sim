@@ -8,7 +8,7 @@
 #include <vector>
 #include <cstdarg>
 #include <sstream>
-#include <stdlib.h>
+#include <cstdlib>
 // For std::reverse:
 #include <algorithm>
 
@@ -22,55 +22,61 @@
 static const arg_t* opt = nullptr;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.i_imm()) + '(' + xpr_name[insn.rs1()] + ')';
   }
 } load_address;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.rvc_lbimm()) + '(' + xpr_name[insn.rvc_rs1s()] + ')';
   }
 } rvb_b_address;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.rvc_lhimm()) + '(' + xpr_name[insn.rvc_rs1s()] + ')';
   }
 } rvb_h_address;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.s_imm()) + '(' + xpr_name[insn.rs1()] + ')';
   }
 } store_address;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::string("(") + xpr_name[insn.rs1()] + ')';
   }
 } base_only_address;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
+    return std::string("(") + xpr_name[insn.rs2()] + ')';
+  }
+} base_rs2_address;
+
+struct : public arg_t {
+  std::string to_string(insn_t insn) const override {
     return xpr_name[insn.rd()];
   }
 } xrd;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return xpr_name[insn.rs1()];
   }
 } xrs1;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((uint32_t)insn.rvc_index());
   }
 } rvcm_jt_index;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     int rlist = insn.rvc_rlist();
     if (rlist >= 4) {
       switch(rlist) {
@@ -86,92 +92,92 @@ struct : public arg_t {
 } rvcm_pushpop_rlist;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return '-' + std::to_string(insn.zcmp_stack_adjustment(32));
   }
 } rvcm_push_stack_adj_32;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return '-' + std::to_string(insn.zcmp_stack_adjustment(64));
   }
 } rvcm_push_stack_adj_64;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string(insn.zcmp_stack_adjustment(32));
   }
 } rvcm_pop_stack_adj_32;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string(insn.zcmp_stack_adjustment(64));
   }
 } rvcm_pop_stack_adj_64;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return xpr_name[insn.rs2()];
   }
 } xrs2;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return xpr_name[insn.rs3()];
   }
 } xrs3;
 
 // RV32 P-extension register pair arguments (even register number)
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return xpr_name[insn.rd_p()];
   }
 } xrd_p;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return xpr_name[insn.rs1_p()];
   }
 } xrs1_p;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return xpr_name[insn.rs2_p()];
   }
 } xrs2_p;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return frm_name(insn.rm());
   }
 } rm;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return fpr_name[insn.rd()];
   }
 } frd;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return fpr_name[insn.rs1()];
   }
 } frs1;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return fpr_name[insn.rs2()];
   }
 } frs2;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return fpr_name[insn.rs3()];
   }
 } frs3;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     switch (insn.csr())
     {
       #define DECLARE_CSR(name, num) case num: return #name;
@@ -188,19 +194,19 @@ struct : public arg_t {
 } csr;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.i_imm());
   }
 } imm;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.shamt());
   }
 } shamt;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     std::stringstream s;
     s << std::hex << "0x" << ((uint32_t)insn.u_imm() >> 12);
     return s.str();
@@ -208,19 +214,19 @@ struct : public arg_t {
 } bigimm;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string(insn.rs1());
   }
 } zimm5;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string(insn.v_zimm6());
   }
 } v_zimm6;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     static const char* table[32] = {
       "-1.0",
       "min",
@@ -261,7 +267,7 @@ struct : public arg_t {
 } fli_imm;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     int32_t target = insn.sb_imm();
     std::string s = target >= 0 ? "pc + " : "pc - ";
     s += std::to_string(abs(target));
@@ -270,7 +276,7 @@ struct : public arg_t {
 } branch_target;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     std::stringstream s;
     int32_t target = insn.uj_imm();
     char sign = target >= 0 ? '+' : '-';
@@ -280,103 +286,103 @@ struct : public arg_t {
 } jump_target;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return xpr_name[insn.rvc_rs1()];
   }
 } rvc_rs1;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return xpr_name[insn.rvc_rs2()];
   }
 } rvc_rs2;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return fpr_name[insn.rvc_rs2()];
   }
 } rvc_fp_rs2;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return xpr_name[insn.rvc_rs1s()];
   }
 } rvc_rs1s;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return xpr_name[insn.rvc_rs2s()];
   }
 } rvc_rs2s;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return xpr_name[RVC_R1S];
   }
 } rvc_r1s;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return xpr_name[RVC_R2S];
   }
 } rvc_r2s;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return fpr_name[insn.rvc_rs2s()];
   }
 } rvc_fp_rs2s;
 
 struct : public arg_t {
-  std::string to_string(insn_t UNUSED insn) const {
+  std::string to_string(insn_t UNUSED insn) const override {
     return xpr_name[X_SP];
   }
 } rvc_sp;
 
 struct : public arg_t {
-  std::string to_string(insn_t UNUSED insn) const {
+  std::string to_string(insn_t UNUSED insn) const override {
     return xpr_name[X_RA];
   }
 } rvc_ra;
 
 struct : public arg_t {
-  std::string to_string(insn_t UNUSED insn) const {
+  std::string to_string(insn_t UNUSED insn) const override {
     return xpr_name[X_T0];
   }
 } rvc_t0;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.rvc_imm());
   }
 } rvc_imm;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.rvc_addi4spn_imm());
   }
 } rvc_addi4spn_imm;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.rvc_addi16sp_imm());
   }
 } rvc_addi16sp_imm;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.rvc_lwsp_imm());
   }
 } rvc_lwsp_imm;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)(insn.rvc_imm() & 0x3f));
   }
 } rvc_shamt;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     std::stringstream s;
     s << std::hex << "0x" << ((uint32_t)insn.rvc_imm() << 12 >> 12);
     return s.str();
@@ -384,43 +390,43 @@ struct : public arg_t {
 } rvc_uimm;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.rvc_lwsp_imm()) + '(' + xpr_name[X_SP] + ')';
   }
 } rvc_lwsp_address;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.rvc_ldsp_imm()) + '(' + xpr_name[X_SP] + ')';
   }
 } rvc_ldsp_address;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.rvc_swsp_imm()) + '(' + xpr_name[X_SP] + ')';
   }
 } rvc_swsp_address;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.rvc_sdsp_imm()) + '(' + xpr_name[X_SP] + ')';
   }
 } rvc_sdsp_address;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.rvc_lw_imm()) + '(' + xpr_name[insn.rvc_rs1s()] + ')';
   }
 } rvc_lw_address;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.rvc_ld_imm()) + '(' + xpr_name[insn.rvc_rs1s()] + ')';
   }
 } rvc_ld_address;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     int32_t target = insn.rvc_b_imm();
     std::string s = target >= 0 ? "pc + " : "pc - ";
     s += std::to_string(abs(target));
@@ -429,7 +435,7 @@ struct : public arg_t {
 } rvc_branch_target;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     int32_t target = insn.rvc_j_imm();
     std::string s = target >= 0 ? "pc + " : "pc - ";
     s += std::to_string(abs(target));
@@ -438,55 +444,68 @@ struct : public arg_t {
 } rvc_jump_target;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::string("(") + xpr_name[insn.rs1()] + ')';
   }
 } v_address;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return vr_name[insn.rd()];
   }
 } vd;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return vr_name[insn.rs1()];
   }
 } vs1;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return vr_name[insn.rs2()];
   }
 } vs2;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return vr_name[insn.rd()];
   }
 } vs3;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return insn.v_vm() ? "" : "v0.t";
   }
 } vm;
 
 struct : public arg_t {
-  std::string to_string(insn_t UNUSED insn) const {
+  std::string to_string(insn_t insn) const override {
+    return vr_name[insn.rs2() & -8];
+  }
+} bdota_vs2;
+
+struct : public arg_t {
+  std::string to_string(insn_t insn) const override {
+    int ci = 8 * (insn.rs2() % 8);
+    return std::to_string(ci);
+  }
+} bdota_ci;
+
+struct : public arg_t {
+  std::string to_string(insn_t UNUSED insn) const override {
     return "v0";
   }
 } v0;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.v_simm5());
   }
 } v_simm5;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     std::stringstream s;
     int sew = insn.v_sew();
     int lmul = insn.v_lmul();
@@ -526,13 +545,13 @@ struct : public arg_t {
 } v_vtype;
 
 struct : public arg_t {
-  std::string to_string(insn_t UNUSED insn) const {
+  std::string to_string(insn_t UNUSED insn) const override {
     return "x0";
   }
 } x0;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     std::string s;
     auto iorw = insn.iorw();
     bool has_pre = false;
@@ -556,67 +575,67 @@ struct : public arg_t {
 } iorw;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.p_imm8());
   }
 } p_imm8;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.p_imm10csl());
   }
 } p_imm10csl;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.p_imm10csr());
   }
 } p_imm10csr;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.p_imm10csrw());
   }
 } p_imm10csrw;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.shamtd());
   }
 } shamtd;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.shamtw());
   }
 } shamtw;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.shamth());
   }
 } shamth;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.shamtb());
   }
 } shamtb;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.b_imm5());
   }
 } b_imm5;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.bs());
   }
 } bs;
 
 struct : public arg_t {
-  std::string to_string(insn_t insn) const {
+  std::string to_string(insn_t insn) const override {
     return std::to_string((int)insn.rcon());
   }
 } rcon;
@@ -742,6 +761,12 @@ static void NOINLINE add_xlr_insn(disassembler_t* d, const char* name, uint32_t 
   d->add_insn(new disasm_insn_t(name, match, mask, {&xrd, &base_only_address}));
 }
 
+static void NOINLINE add_zilx_insn(disassembler_t* d, const char* name, uint32_t match, uint32_t mask)
+{
+  // Zilx assembly syntax: mnemonic rd, (rs2), rs1  (rs2 is base, rs1 is index)
+  d->add_insn(new disasm_insn_t(name, match, mask, {&xrd, &base_rs2_address, &xrs1}));
+}
+
 static void NOINLINE add_xst_insn(disassembler_t* d, const char* name, uint32_t match, uint32_t mask)
 {
   d->add_insn(new disasm_insn_t(name, match, mask, {&xrs2, &base_only_address}));
@@ -821,6 +846,11 @@ static void NOINLINE add_vector_v_insn(disassembler_t* d, const char* name, uint
 static void NOINLINE add_vector_vv_insn(disassembler_t* d, const char* name, uint32_t match, uint32_t mask)
 {
   d->add_insn(new disasm_insn_t(name, match, mask, {&vd, &vs2, &vs1, opt, &vm}));
+}
+
+static void NOINLINE add_vector_bdota_insn(disassembler_t* d, const char* name, uint32_t match, uint32_t mask)
+{
+  d->add_insn(new disasm_insn_t(name, match, mask, {&vd, &bdota_vs2, &vs1, &bdota_ci, opt, &vm}));
 }
 
 static void NOINLINE add_vector_multiplyadd_vv_insn(disassembler_t* d, const char* name, uint32_t match, uint32_t mask)
@@ -918,6 +948,8 @@ void disassembler_t::add_instructions(const isa_parser_t* isa, bool strict)
   const uint32_t mask_vldst = 0x7Ul << 12 | 0x1UL << 28;
   const uint32_t mask_amoop = 0x1fUl << 27;
   const uint32_t mask_width = 0x7Ul << 12;
+  const uint32_t mask_shamt_msb = 0x1Ul << 25;
+  const uint32_t mask_rvc_shamt_msb = 0x1Ul << 12;
 
   #define DECLARE_INSN(code, match, mask) \
    const uint32_t match_##code = match; \
@@ -933,7 +965,12 @@ void disassembler_t::add_instructions(const isa_parser_t* isa, bool strict)
   #define DEFINE_R1TYPE(code) add_r1type_insn(this, #code, match_##code, mask_##code);
   #define DEFINE_R3TYPE(code) add_r3type_insn(this, #code, match_##code, mask_##code);
   #define DEFINE_ITYPE(code) add_itype_insn(this, #code, match_##code, mask_##code);
-  #define DEFINE_ITYPE_SHIFT(code) add_itype_shift_insn(this, #code, match_##code, mask_##code);
+  // A shift-immediate instruction with a 5-bit shift amount, where instruction
+  // bit 25 is reserved. This is the *w instructions, which always shift a
+  // 32-bit value, and on RV32 every shift-immediate instruction.
+  #define DEFINE_ITYPE_SHIFTW(code) add_itype_shift_insn(this, #code, match_##code, mask_##code | mask_shamt_msb);
+  // A shift-immediate instruction whose shift amount is XLEN wide.
+  #define DEFINE_ITYPE_SHIFT(code) if (xlen_eq(64)) { add_itype_shift_insn(this, #code, match_##code, mask_##code); } else { DEFINE_ITYPE_SHIFTW(code) }
   // RV32 P-extension register pair macros
   #define DEFINE_RTYPE_RDP(code) add_rtype_rdp_insn(this, #code, match_##code, mask_##code);
   #define DEFINE_R1TYPE_RDP(code) add_r1type_rdp_insn(this, #code, match_##code, mask_##code);
@@ -960,6 +997,7 @@ void disassembler_t::add_instructions(const isa_parser_t* isa, bool strict)
   #define DEFINE_XAMO(code) add_xamo_insn(this, #code, match_##code, mask_##code);
   #define DEFINE_XLOAD_BASE(code) add_xlr_insn(this, #code, match_##code, mask_##code);
   #define DEFINE_XSTORE_BASE(code) add_xst_insn(this, #code, match_##code, mask_##code);
+  #define DEFINE_ZILX(code) add_zilx_insn(this, #code, match_##code, mask_##code);
   #define DEFINE_FLOAD(code) add_fload_insn(this, #code, match_##code, mask_##code);
   #define DEFINE_FSTORE(code) add_fstore_insn(this, #code, match_##code, mask_##code);
   #define DEFINE_FRTYPE(code) add_frtype_insn(this, #code, match_##code, mask_##code);
@@ -1071,6 +1109,44 @@ void disassembler_t::add_instructions(const isa_parser_t* isa, bool strict)
     DEFINE_NOARG(wrs_nto);
   }
 
+  if (ext_enabled(EXT_ZILX)) {
+    // `lxb`/`lxbu` are assembler pseudoinstructions for `lxsb`/`lxsbu`; add
+    // them first so they win when disassembling the shared encoding.
+    add_zilx_insn(this, "lxb", match_lxsb, mask_lxsb);
+    add_zilx_insn(this, "lxbu", match_lxsbu, mask_lxsbu);
+
+    // unscaled indexed loads
+    DEFINE_ZILX(lxh)
+    DEFINE_ZILX(lxw)
+    DEFINE_ZILX(lxhu)
+
+    // scaled indexed loads
+    DEFINE_ZILX(lxsb)
+    DEFINE_ZILX(lxsh)
+    DEFINE_ZILX(lxsw)
+    DEFINE_ZILX(lxsbu)
+    DEFINE_ZILX(lxshu)
+
+    if (xlen_eq(64)) {
+      // unscaled indexed loads (RV64-only widths)
+      DEFINE_ZILX(lxd)
+      DEFINE_ZILX(lxwu)
+
+      // scaled indexed loads (RV64-only widths)
+      DEFINE_ZILX(lxsd)
+      DEFINE_ZILX(lxswu)
+
+      // scaled indexed loads with zero-extended 32-bit index (RV64-only)
+      DEFINE_ZILX(lxsuwb)
+      DEFINE_ZILX(lxsuwh)
+      DEFINE_ZILX(lxsuww)
+      DEFINE_ZILX(lxsuwd)
+      DEFINE_ZILX(lxsuwbu)
+      DEFINE_ZILX(lxsuwhu)
+      DEFINE_ZILX(lxsuwwu)
+    }
+  }
+
   if (ext_enabled(EXT_ZICFILP)) {
     // lpad encodes as `auipc x0, label`, so it needs to be added before auipc
     // for higher disassembling priority
@@ -1121,9 +1197,9 @@ void disassembler_t::add_instructions(const isa_parser_t* isa, bool strict)
     DEFINE_I1TYPE("sext.w", addiw);
     DEFINE_ITYPE(addiw);
 
-    DEFINE_ITYPE_SHIFT(slliw);
-    DEFINE_ITYPE_SHIFT(srliw);
-    DEFINE_ITYPE_SHIFT(sraiw);
+    DEFINE_ITYPE_SHIFTW(slliw);
+    DEFINE_ITYPE_SHIFTW(srliw);
+    DEFINE_ITYPE_SHIFTW(sraiw);
 
     DEFINE_RTYPE(addw);
     DEFINE_RTYPE(subw);
@@ -1226,7 +1302,7 @@ void disassembler_t::add_instructions(const isa_parser_t* isa, bool strict)
     if (xlen_eq(64)) {
       DEFINE_RTYPE(rorw);
       DEFINE_RTYPE(rolw);
-      DEFINE_ITYPE_SHIFT(roriw);
+      DEFINE_ITYPE_SHIFTW(roriw);
       DEFINE_R1TYPE(ctzw);
       DEFINE_R1TYPE(clzw);
       DEFINE_R1TYPE(cpopw);
@@ -1569,9 +1645,11 @@ void disassembler_t::add_instructions(const isa_parser_t* isa, bool strict)
     DISASM_INSN("c.li", c_li, 0, {&xrd, &rvc_imm});
     DISASM_INSN("c.lui", c_lui, 0, {&xrd, &rvc_uimm});
     DISASM_INSN("c.addi", c_addi, 0, {&xrd, &rvc_imm});
-    DISASM_INSN("c.slli", c_slli, 0, {&rvc_rs1, &rvc_shamt});
-    DISASM_INSN("c.srli", c_srli, 0, {&rvc_rs1s, &rvc_shamt});
-    DISASM_INSN("c.srai", c_srai, 0, {&rvc_rs1s, &rvc_shamt});
+    // On RV32 the shift amount is 5 bits, so bit 12 is reserved.
+    const uint32_t rvc_shamt_msb = xlen_eq(64) ? 0 : mask_rvc_shamt_msb;
+    DISASM_INSN("c.slli", c_slli, rvc_shamt_msb, {&rvc_rs1, &rvc_shamt});
+    DISASM_INSN("c.srli", c_srli, rvc_shamt_msb, {&rvc_rs1s, &rvc_shamt});
+    DISASM_INSN("c.srai", c_srai, rvc_shamt_msb, {&rvc_rs1s, &rvc_shamt});
     DISASM_INSN("c.andi", c_andi, 0, {&rvc_rs1s, &rvc_imm});
     DISASM_INSN("c.mv", c_mv, 0, {&xrd, &rvc_rs2});
     DISASM_INSN("c.add", c_add, 0, {&xrd, &rvc_rs2});
@@ -1749,6 +1827,7 @@ void disassembler_t::add_instructions(const isa_parser_t* isa, bool strict)
     #define DEFINE_VECTOR_MULTIPLYADD_VF(code) add_vector_multiplyadd_vf_insn(this, #code, match_##code, mask_##code)
     #define DEFINE_VECTOR_VI(code) add_vector_vi_insn(this, #code, match_##code, mask_##code)
     #define DEFINE_VECTOR_VIU(code) add_vector_viu_insn(this, #code, match_##code, mask_##code)
+    #define DEFINE_VECTOR_BDOTA(code) add_vector_bdota_insn(this, #code, match_##code, mask_##code)
 
     #define DISASM_OPIV_VXI_INSN(name, sign, suf) \
       DEFINE_VECTOR_VV(name##_##suf##v); \
@@ -1952,11 +2031,43 @@ void disassembler_t::add_instructions(const isa_parser_t* isa, bool strict)
     DISASM_OPIV_MULTIPLYADD__X__INSN(vwmaccus,  1);
     DISASM_OPIV_MULTIPLYADD_VX__INSN(vwmaccsu,  0);
 
-    if (ext_enabled(EXT_ZVQDOTQ)) {
-      DISASM_OPIV_VX__INSN(vqdot,   0);
-      DISASM_OPIV_VX__INSN(vqdotu,  0);
-      DISASM_OPIV_VX__INSN(vqdotsu, 0);
-      DISASM_OPIV__X__INSN(vqdotus, 0);
+    if (ext_enabled(EXT_ZVDOT4A)) {
+      DISASM_OPIV_VX__INSN(vdot4a,   0);
+      DISASM_OPIV_VX__INSN(vdot4au,  0);
+      DISASM_OPIV_VX__INSN(vdot4asu, 0);
+      DISASM_OPIV__X__INSN(vdot4aus, 0);
+    }
+
+    if (ext_enabled(EXT_ZVQWBDOTA8I) || ext_enabled(EXT_ZVQWBDOTA16I)) {
+      DEFINE_VECTOR_BDOTA(vqwbdotau_vv);
+      DEFINE_VECTOR_BDOTA(vqwbdotas_vv);
+    }
+
+    if (ext_enabled(EXT_ZVFQWBDOTA8F)) {
+      DEFINE_VECTOR_BDOTA(vfqwbdota_vv);
+      DEFINE_VECTOR_BDOTA(vfqwbdota_alt_vv);
+    }
+
+    if (ext_enabled(EXT_ZVFWBDOTA16BF)) {
+      DEFINE_VECTOR_BDOTA(vfwbdota_vv);
+    }
+
+    if (ext_enabled(EXT_ZVFBDOTA32F)) {
+      DEFINE_VECTOR_BDOTA(vfbdota_vv);
+    }
+
+    if (ext_enabled(EXT_ZVQWDOTA8I) || ext_enabled(EXT_ZVQWDOTA16I)) {
+      DEFINE_VECTOR_VV(vqwdotau_vv);
+      DEFINE_VECTOR_VV(vqwdotas_vv);
+    }
+
+    if (ext_enabled(EXT_ZVFQWDOTA8F)) {
+      DEFINE_VECTOR_VV(vfqwdota_vv);
+      DEFINE_VECTOR_VV(vfqwdota_alt_vv);
+    }
+
+    if (ext_enabled(EXT_ZVFWDOTA16BF)) {
+      DEFINE_VECTOR_VV(vfwdota_vv);
     }
 
     #undef DISASM_OPIV_VXI_INSN
@@ -2263,11 +2374,14 @@ void disassembler_t::add_instructions(const isa_parser_t* isa, bool strict)
   }
 
   if (ext_enabled(EXT_ZVABD)) {
-    DEFINE_VECTOR_V(vabs_v);
     DEFINE_VECTOR_VV(vabd_vv);
+    DEFINE_VECTOR_VX(vabd_vx);
     DEFINE_VECTOR_VV(vabdu_vv);
-    DEFINE_VECTOR_MULTIPLYADD_VV(vwabda_vv);
-    DEFINE_VECTOR_MULTIPLYADD_VV(vwabdau_vv);
+    DEFINE_VECTOR_VX(vabdu_vx);
+    DEFINE_VECTOR_VV(vwabda_vv);
+    DEFINE_VECTOR_VX(vwabda_vx);
+    DEFINE_VECTOR_VV(vwabdau_vv);
+    DEFINE_VECTOR_VX(vwabdau_vx);
   }
 
   if (ext_enabled(EXT_ZVZIP)) {

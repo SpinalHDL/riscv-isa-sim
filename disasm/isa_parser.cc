@@ -193,7 +193,7 @@ static const extension_info_t extension_infos[] = {
   {"zvksg", {EXT_ZVKB, EXT_ZVKG, EXT_ZVKSED, EXT_ZVKSH}},
   {"zvksed", {EXT_ZVKSED}},
   {"zvksh", {EXT_ZVKSH}},
-  {"zvqdotq", {EXT_ZVQDOTQ}},
+  {"zvdot4a", {EXT_ZVDOT4A}},
   {"zvqwbdota8i", {EXT_ZVQWBDOTA8I}},
   {"zvqwbdota16i", {EXT_ZVQWBDOTA16I}},
   {"zvfqwbdota8f", {EXT_ZVFQWBDOTA8F}},
@@ -204,8 +204,25 @@ static const extension_info_t extension_infos[] = {
   {"zvfqwdota8f", {EXT_ZVFQWDOTA8F}},
   {"zvfwdota16bf", {EXT_ZVFWDOTA16BF}},
   {"zvkt"},
+  {"zvtbase", {EXT_ZVTBASE}, {"zve32x"}},
+  {"zvt8t", {EXT_ZVT8T}, {"zvtbase"}},
+  {"zvt16t", {EXT_ZVT16T}, {"zvt8t"}},
+  {"zvt32t", {EXT_ZVT32T}, {"zvt16t"}},
+  {"zvt64t", {EXT_ZVT64T}, {"zvt32t"}},
+  {"zvt128t", {EXT_ZVT128T}, {"zvt64t"}},
+  {"zvt256t", {EXT_ZVT256T}, {"zvt128t"}},
+  {"zvt8e", {EXT_ZVT8E}, {"zvtbase"}},
+  {"zvt16e", {EXT_ZVT16E}, {"zvtbase"}},
+  {"zvt64e", {EXT_ZVT64E}, {"zvtbase", "zve64x"}},
+  {"zvti8i32mm", {EXT_ZVTI8I32MM}, {"zvt8e"}},
+  {"zvtofp8fmm", {EXT_ZVTOFP8FMM}, {"zvt8e", "zve32f"}},
+  {"zvtfp16fmm", {EXT_ZVTFP16FMM}, {"zvt16e", "zve32f"}},
+  {"zvtbf16fmm", {EXT_ZVTBF16FMM}, {"zvt16e", "zve32f"}},
+  {"zvtfmm", {EXT_ZVTFMM}, {"zvtbase", "zve32f"}},
+  {"zvtdmm", {EXT_ZVTDMM}, {"zvt64e", "zve64d"}},
   {"zvzip", {EXT_ZVZIP}},
-  {"sstc", {EXT_SSTC}},
+  {"zilx", {EXT_ZILX}},
+  {"sstc", {EXT_SSTC, EXT_ZICNTR}},
   {"smcsrind", {EXT_SMCSRIND}},
   {"sscsrind", {EXT_SSCSRIND}},
   {"smcntrpmf", {EXT_SMCNTRPMF}},
@@ -299,9 +316,9 @@ void isa_parser_t::add_extension(const std::string& ext_str, const char* str)
     for (const auto implied : info->implies) {
       add_extension(implied, str);
     }
-    if (ext_str.substr(0, 3) == "zve")
+    if (ext_str.starts_with("zve"))
       apply_zve_properties(ext_str, str);
-  } else if (ext_str.substr(0, 3) == "zvl") {
+  } else if (ext_str.starts_with("zvl")) {
     reg_t new_vlen;
     try {
       new_vlen = safe_stoul(ext_str.substr(3, ext_str.size() - 4));
@@ -328,9 +345,9 @@ isa_parser_t::isa_parser_t(const char* str, const char *priv)
   isa_string = strtolower(str);
   const char* all_subsets = "mafdqcbpvh";
 
-  if (isa_string.compare(0, 4, "rv32") == 0)
+  if (isa_string.starts_with("rv32"))
     max_xlen = 32;
-  else if (isa_string.compare(0, 4, "rv64") == 0)
+  else if (isa_string.starts_with("rv64"))
     max_xlen = 64;
   else
     bad_isa_string(str, "ISA strings must begin with RV32 or RV64");
@@ -460,4 +477,16 @@ isa_parser_t::isa_parser_t(const char* str, const char *priv)
 
   if (extension_table[EXT_SSPMP] && !supervisor)
     bad_isa_string(str, "'SPMP' extension requires S mode");
+}
+
+reg_t isa_parser_t::get_te() const
+{
+  return
+    extension_enabled(EXT_ZVT256T) ? 256 :
+    extension_enabled(EXT_ZVT128T) ? 128 :
+    extension_enabled(EXT_ZVT64T) ? 64 :
+    extension_enabled(EXT_ZVT32T) ? 32 :
+    extension_enabled(EXT_ZVT16T) ? 16 :
+    extension_enabled(EXT_ZVT8T) ? 8 :
+    extension_enabled(EXT_ZVTBASE) ? 4 : 0;
 }

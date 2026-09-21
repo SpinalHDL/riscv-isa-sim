@@ -81,7 +81,7 @@ typedef enum {
   EXT_ZVKNHB,
   EXT_ZVKSED,
   EXT_ZVKSH,
-  EXT_ZVQDOTQ,
+  EXT_ZVDOT4A,
   EXT_ZVQWBDOTA8I,
   EXT_ZVQWBDOTA16I,
   EXT_ZVFQWBDOTA8F,
@@ -91,6 +91,22 @@ typedef enum {
   EXT_ZVQWDOTA16I,
   EXT_ZVFQWDOTA8F,
   EXT_ZVFWDOTA16BF,
+  EXT_ZVTBASE,
+  EXT_ZVT8T,
+  EXT_ZVT16T,
+  EXT_ZVT32T,
+  EXT_ZVT64T,
+  EXT_ZVT128T,
+  EXT_ZVT256T,
+  EXT_ZVT8E,
+  EXT_ZVT16E,
+  EXT_ZVT64E,
+  EXT_ZVTI8I32MM,
+  EXT_ZVTOFP8FMM,
+  EXT_ZVTFP16FMM,
+  EXT_ZVTBF16FMM,
+  EXT_ZVTFMM,
+  EXT_ZVTDMM,
   EXT_ZVZIP,
   EXT_SSTC,
   EXT_ZAAMO,
@@ -120,6 +136,7 @@ typedef enum {
   EXT_SSAIA,
   EXT_ZA64RS,
   EXT_ZA128RS,
+  EXT_ZILX,
   NUM_ISA_EXTENSIONS
 } isa_extension_t;
 
@@ -137,6 +154,7 @@ public:
   std::string get_isa_string() const { return isa_string; }
   reg_t get_vlen() const { return vlen; }
   reg_t get_elen() const { return elen; }
+  reg_t get_te() const;
   bool get_zvf() const { return zvf; }
   bool get_zvd() const { return zvd; }
   bool extension_enabled(unsigned char ext) const {

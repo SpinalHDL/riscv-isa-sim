@@ -2245,19 +2245,21 @@ c_t generic_dot_product(const std::vector<a_t>& a, const std::vector<b_t>& b, c_
 }
 
 #define ZVLDOT_LOOP(a_t, b_t, c_t, dot) \
-  std::vector<a_t> a(P.VU.vlmax, a_t()); \
-  std::vector<b_t> b(P.VU.vlmax, b_t()); \
-  for (reg_t i = 0, vl = P.VU.vl->read(); i < vl; i++) { \
-    VI_LOOP_ELEMENT_SKIP(); \
-    a[i] = P.VU.elt<a_t>(insn.rs1(), i); \
-    b[i] = P.VU.elt<b_t>(insn.rs2(), i); \
-  } \
-  auto& acc = P.VU.elt<c_t>(insn.rd(), 0, true); \
-  acc = dot(a, b, acc); \
-  set_fp_exceptions;
+  if (auto vl = P.VU.vl->read()) { \
+    std::vector<a_t> a(P.VU.vlmax, a_t()); \
+    std::vector<b_t> b(P.VU.vlmax, b_t()); \
+    for (reg_t i = 0; i < vl; i++) { \
+      VI_LOOP_ELEMENT_SKIP(); \
+      a[i] = P.VU.elt<a_t>(insn.rs1(), i); \
+      b[i] = P.VU.elt<b_t>(insn.rs2(), i); \
+    } \
+    auto& acc = P.VU.elt<c_t>(insn.rd(), 0, true); \
+    acc = dot(a, b, acc); \
+    set_fp_exceptions; \
+  }
 
 #define ZVLDOT_GENERIC_LOOP(a_t, b_t, c_t, macc) \
-  auto dot = std::bind(generic_dot_product<a_t, b_t, c_t>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, macc); \
+  auto dot = [&](const std::vector<a_t>& a, const std::vector<b_t>& b, c_t c) { return generic_dot_product<a_t, b_t, c_t>(a, b, c, macc); }; \
   ZVLDOT_LOOP(a_t, b_t, c_t, dot)
 
 #define ZVLDOT_SIMPLE_LOOP(a_t, b_t, c_t) \
@@ -2265,22 +2267,24 @@ c_t generic_dot_product(const std::vector<a_t>& a, const std::vector<b_t>& b, c_
   ZVLDOT_GENERIC_LOOP(a_t, b_t, c_t, macc)
 
 #define ZVBDOT_LOOP(a_t, b_t, c_t, dot) \
-  for (reg_t idx = 0; idx < 8; idx++) { \
-    reg_t i = ci + idx; \
-    VI_LOOP_ELEMENT_SKIP(); \
-    std::vector<a_t> a(P.VU.vlmax, a_t()); \
-    std::vector<b_t> b(P.VU.vlmax, b_t()); \
-    for (reg_t k = 0, vl = P.VU.vl->read(); k < vl; k++) { \
-      a[k] = P.VU.elt<a_t>(insn.rs1(), k); \
-      b[k] = P.VU.elt<b_t>(vs2 + idx, k); \
+  if (auto vl = P.VU.vl->read()) { \
+    for (reg_t idx = 0; idx < 8; idx++) { \
+      reg_t i = ci + idx; \
+      VI_LOOP_ELEMENT_SKIP(); \
+      std::vector<a_t> a(P.VU.vlmax, a_t()); \
+      std::vector<b_t> b(P.VU.vlmax, b_t()); \
+      for (reg_t k = 0; k < vl; k++) { \
+        a[k] = P.VU.elt<a_t>(insn.rs1(), k); \
+        b[k] = P.VU.elt<b_t>(vs2 + idx, k); \
+      } \
+      auto& acc = P.VU.elt<c_t>(insn.rd(), i, true); \
+      acc = dot(a, b, acc); \
+      set_fp_exceptions; \
     } \
-    auto& acc = P.VU.elt<c_t>(insn.rd(), i, true); \
-    acc = dot(a, b, acc); \
-    set_fp_exceptions; \
   }
 
 #define ZVBDOT_GENERIC_LOOP(a_t, b_t, c_t, macc) \
-  auto dot = std::bind(generic_dot_product<a_t, b_t, c_t>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, macc); \
+  auto dot = [&](const std::vector<a_t>& a, const std::vector<b_t>& b, c_t c) { return generic_dot_product<a_t, b_t, c_t>(a, b, c, macc); }; \
   ZVBDOT_LOOP(a_t, b_t, c_t, dot)
 
 #define ZVBDOT_SIMPLE_LOOP(a_t, b_t, c_t) \
@@ -2290,6 +2294,72 @@ c_t generic_dot_product(const std::vector<a_t>& a, const std::vector<b_t>& b, c_
 #define P_SET_OV(ov) \
   if (ov) P.set_vxsat();
 
-#define DO_ABD(N, M)  ((N) > (M) ? (N) - (M) : (M) - (N))
+#define DO_ABD_WITH_TYPE(N, M, WT, RT) ({ \
+  WT n = (WT)(N); \
+  WT m = (WT)(M); \
+  (RT)(n > m ? n - m : m - n); \
+})
+
+#define DO_ABD(N, M) \
+  (sizeof(N) == 1 ? DO_ABD_WITH_TYPE(N, M, int16_t, uint8_t) : \
+   sizeof(N) == 2 ? DO_ABD_WITH_TYPE(N, M, int32_t, uint16_t) : \
+   sizeof(N) == 4 ? DO_ABD_WITH_TYPE(N, M, int64_t, uint32_t) : \
+                    DO_ABD_WITH_TYPE(N, M, int128_t, uint64_t))
+
+#define DO_ABDU(N, M)  ((N) > (M) ? (N) - (M) : (M) - (N))
+
+#define ZVT_LDST_BASE \
+  require_extension(EXT_ZVTBASE); \
+  require_vector(false); \
+  require(P.VU.widen > 0); \
+  require(STATE.sstatus->enabled(SSTATUS_MS))
+
+#define ZVT_END \
+  STATE.sstatus->dirty(SSTATUS_MS); \
+  VECTOR_END
+
+#define ZVT_LDST(type, is_store) \
+  ZVT_LDST_BASE; \
+  reg_t base = RS1; \
+  reg_t tss = RS2; \
+  reg_t idx = P.VU.vstart->read(); \
+  reg_t tn = P.VU.tn(8 * sizeof(type)); \
+  STATE.sstatus->dirty(SSTATUS_MS); \
+  for ( ; idx < tn; idx++) { \
+    P.VU.vstart->write(idx); \
+    reg_t addr = base + idx * sizeof(type); \
+    if (is_store) { \
+      MMU.store<type>(addr, P.VU.tss_elt<type>(tss, idx)); \
+    } else { \
+      P.VU.tss_elt<type>(tss, idx) = MMU.load<type>(addr); \
+    } \
+  } \
+  VECTOR_END;
+
+#define ZVT_BASE \
+  ZVT_LDST_BASE; \
+  require(P.VU.vstart->read() == 0);
+
+#define ZVT_MTD(n_tiles) \
+  ZVT_BASE; \
+  const reg_t td = (insn.rd() >> 1) & (16 - 16 / (n_tiles)); \
+  require((td & (P.VU.mt_align(P.VU.tew()) - 1)) == 0)
+
+#define ZVT_MN_LOOP(BODY) \
+  const reg_t UNUSED tm = P.VU.tm, tn = P.VU.tn(), tk = P.VU.tk; \
+  const reg_t sew = P.VU.vsew, widen = P.VU.widen; \
+  const reg_t UNUSED tew = sew * widen; \
+  for (size_t m = 0; m < tm; m++) { \
+    for (size_t n = 0; n < tn; n++) { \
+      BODY; \
+    } \
+  } \
+  ZVT_END;
+
+#define ZVT_CHECK_ALIGN_RS1 require_align(insn.rs1(), P.VU.vflmul)
+#define ZVT_CHECK_ALIGN_RS2 require_align(insn.rs2(), P.VU.vflmul)
+#define ZVT_CHECK_ALIGN_RD require_align(insn.rd(), P.VU.vflmul)
+#define ZVT_CHECK_RS1_EMUL require((insn.rs1()) % 8 < 8/P.VU.kmax())
+#define ZVT_CHECK_RS2_EMUL require((insn.rs2()) % 8 < 8/P.VU.kmax())
 
 #endif

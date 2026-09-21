@@ -17,6 +17,7 @@
 #include "triggers.h"
 #include "../fesvr/memif.h"
 #include "vector_unit.h"
+#include "imsic.h"
 
 #define FIRST_HPMCOUNTER 3
 #define N_HPMCOUNTERS 29
@@ -77,7 +78,7 @@ typedef std::vector<std::tuple<reg_t, uint64_t, uint8_t>> commit_log_mem_t;
 // architectural state of a RISC-V hart
 struct state_t
 {
-  void add_iprio_proxy(processor_t* const proc, sscsrind_reg_csr_t_p ireg);
+  void add_ireg_proxy(sscsrind_reg_csr_t_p ireg, aia_ireg_proxy_csr_t_p aia_proxy);
   void reset(processor_t* const proc, reg_t max_isa);
   void add_csr(reg_t addr, const csr_t_p& csr);
 
@@ -93,6 +94,7 @@ struct state_t
   bool v_changed;
   bool v;
   bool prev_v;
+  bool in_wfi;
   misa_csr_t_p misa;
   mstatus_csr_t_p mstatus;
   csr_t_p mstatush;
@@ -139,6 +141,10 @@ struct state_t
   csr_t_p htval;
   csr_t_p htinst;
   csr_t_p hgatp;
+  csr_t_p hgeie;
+  csr_t_p hgeip;
+  csr_t_p hip;
+  csr_t_p hie;
   hvip_csr_t_p hvip;
   sstatus_csr_t_p sstatus;
   vsstatus_csr_t_p vsstatus;
@@ -236,7 +242,7 @@ public:
               const cfg_t* cfg,
               simif_t* sim, uint32_t id, bool halt_on_reset,
               FILE *log_file, std::ostream& sout_); // because of command line option --log and -s we need both
-  ~processor_t();
+  ~processor_t() override;
 
   const isa_parser_t &get_isa() const & { return isa; }
   const cfg_t &get_cfg() const & { return *cfg; }
@@ -362,8 +368,8 @@ public:
 
   const char* get_symbol(uint64_t addr);
 
-  void clear_waiting_for_interrupt() { in_wfi = false; };
-  bool is_waiting_for_interrupt() { return in_wfi; };
+  void clear_waiting_for_interrupt() { state.in_wfi = false; };
+  bool is_waiting_for_interrupt() const { return state.in_wfi; };
 
   void check_if_lpad_required();
   reg_t set_lpad_expected(reg_t pc);
@@ -388,7 +394,6 @@ private:
   FILE *log_file;
   std::ostream sout_; // needed for socket command interface -s, also used for -d and -l, but not for --log
   bool halt_on_reset;
-  bool in_wfi;
   bool check_triggers_icount;
   std::vector<bool> impl_table;
 
@@ -434,6 +439,9 @@ public:
 
   vectorUnit_t VU;
   triggers::module_t TM;
+
+  unsigned geilen;
+  imsic_t_p imsic;
 };
 
 #endif
