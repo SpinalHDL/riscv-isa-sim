@@ -34,6 +34,7 @@ riscv_install_hdrs = \
 	encoding.h \
 	entropy_source.h \
 	extension.h \
+	imsic.h \
 	isa_parser.h \
 	jtag_dtm.h \
 	log_file.h \
@@ -57,6 +58,7 @@ riscv_srcs = \
 	execute.cc \
 	dts.cc \
 	sim.cc \
+	imsic.cc \
 	interactive.cc \
 	cachesim.cc \
 	mmu.cc \
@@ -78,6 +80,7 @@ riscv_srcs = \
 	vector_unit.cc \
 	socketif.cc \
 	cfg.cc \
+	aplic.cc \
 	$(riscv_gen_srcs) \
 
 riscv_test_srcs = \
@@ -867,21 +870,21 @@ riscv_insn_ext_v_ctrl = \
 	vsetvli \
 	vsetvl \
 
-riscv_insn_ext_zvqdotq = \
-	vqdot_vv \
-	vqdot_vx \
-	vqdotu_vv \
-	vqdotu_vx \
-	vqdotsu_vv \
-	vqdotsu_vx \
-	vqdotus_vx \
+riscv_insn_ext_zvdot4a = \
+	vdot4a_vv \
+	vdot4a_vx \
+	vdot4au_vv \
+	vdot4au_vx \
+	vdot4asu_vv \
+	vdot4asu_vx \
+	vdot4aus_vx \
 
 riscv_insn_ext_v = \
 	$(riscv_insn_ext_v_alu_fp) \
 	$(riscv_insn_ext_v_alu_int) \
 	$(riscv_insn_ext_v_ctrl) \
 	$(riscv_insn_ext_v_ldst) \
-	$(riscv_insn_ext_zvqdotq) \
+	$(riscv_insn_ext_zvdot4a) \
 
 riscv_insn_ext_h = \
 	hfence_gvma \
@@ -1088,20 +1091,20 @@ riscv_insn_ext_zvksh = \
 	vsm3c_vi \
 	vsm3me_vv \
 
-riscv_insn_ext_zvbdot = \
-	vqbdotu_vv \
-	vqbdots_vv \
-	vfwbdot_vv \
-	vfbdot_vv \
-	vfqbdot_vv \
-	vfqbdot_alt_vv \
+riscv_insn_ext_zvbdota = \
+	vfbdota_vv \
+	vfqwbdota_alt_vv \
+	vfqwbdota_vv \
+	vfwbdota_vv \
+	vqwbdotas_vv \
+	vqwbdotau_vv \
 
-riscv_insn_ext_zvldot = \
-	vqldotu_vv \
-	vqldots_vv \
-	vfwldot_vv \
-	vfqldot_vv \
-	vfqldot_alt_vv \
+riscv_insn_ext_zvdota = \
+	vfqwdota_alt_vv \
+	vfqwdota_vv \
+	vfwdota_vv \
+	vqwdotas_vv \
+	vqwdotau_vv \
 
 riscv_insn_ext_zimop = \
 	mop_r_N \
@@ -1138,11 +1141,37 @@ riscv_insn_ext_zvk = \
 	$(riscv_insn_ext_zvksh) \
 
 riscv_insn_ext_zvabd = \
-	vabs_v \
 	vabd_vv \
+	vabd_vx \
 	vabdu_vv \
+	vabdu_vx \
 	vwabda_vv \
+	vwabda_vx \
 	vwabdau_vv \
+	vwabdau_vx \
+
+riscv_insn_ext_zvt = \
+	msettn \
+	msettm \
+	msettk \
+	msetmtype \
+	msetmtypei \
+	vtle8 \
+	vtse8 \
+	vtle16 \
+	vtse16 \
+	vtle32 \
+	vtse32 \
+	vtle64 \
+	vtse64 \
+	vtmv_t_v \
+	vtmv_v_t \
+	vtzero \
+	vtdiscard \
+	vtmmu_tvv \
+	vtmms_tvv \
+	vtfmm_tvv \
+	vtfmm_alt_tvv \
 
 riscv_insn_ext_zvzip = \
 	vzip_vv \
@@ -1150,6 +1179,27 @@ riscv_insn_ext_zvzip = \
 	vunzipo_v \
 	vpaire_vv \
 	vpairo_vv \
+
+riscv_insn_ext_zilx = \
+	lxh \
+	lxw \
+	lxd \
+	lxhu \
+	lxwu \
+	lxsb \
+	lxsh \
+	lxsw \
+	lxsd \
+	lxsbu \
+	lxshu \
+	lxswu \
+	lxsuwb \
+	lxsuwh \
+	lxsuww \
+	lxsuwd \
+	lxsuwbu \
+	lxsuwhu \
+	lxsuwwu \
 
 riscv_insn_ext_p = \
 	pli_b \
@@ -1790,10 +1840,12 @@ riscv_insn_list = \
 	$(riscv_insn_ext_zfh_zfa) \
 	$(riscv_insn_ext_zicond) \
 	$(riscv_insn_ext_zvk) \
-	$(riscv_insn_ext_zvbdot) \
-	$(riscv_insn_ext_zvldot) \
+	$(riscv_insn_ext_zvbdota) \
+	$(riscv_insn_ext_zvdota) \
 	$(riscv_insn_ext_zvabd) \
+	$(riscv_insn_ext_zvt) \
 	$(riscv_insn_ext_zvzip) \
+	$(riscv_insn_ext_zilx) \
 	$(riscv_insn_priv) \
 	$(riscv_insn_smrnmi) \
 	$(riscv_insn_svinval) \

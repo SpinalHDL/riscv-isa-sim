@@ -17,8 +17,8 @@
 #include <cstdlib>
 #include <iostream>
 #include <iomanip>
-#include <assert.h>
-#include <limits.h>
+#include <cassert>
+#include <climits>
 #include <stdexcept>
 #include <string>
 #include <algorithm>
@@ -48,9 +48,9 @@ processor_t::processor_t(const char* isa_str, const char* priv_str,
   sim(sim), id(id), xlen(isa.get_max_xlen()),
   histogram_enabled(false), log_commits_enabled(false), log_commits_print_enabled(false),
   log_file(log_file), sout_(sout_.rdbuf()), halt_on_reset(halt_on_reset),
-  in_wfi(false), check_triggers_icount(false),
+  check_triggers_icount(false),
   impl_table(256, false), extension_enable_table(isa.get_extension_table()),
-  last_pc(1), executions(1), TM(cfg->trigger_count)
+  last_pc(1), executions(1), TM(cfg->trigger_count), geilen(GEILEN)
 {
   VU.p = this;
   TM.proc = this;
@@ -70,6 +70,7 @@ processor_t::processor_t(const char* isa_str, const char* priv_str,
 
   VU.VLEN = isa.get_vlen();
   VU.ELEN = isa.get_elen();
+  VU.TE = isa.get_te();
   VU.vlenb = isa.get_vlen() / 8;
   VU.vstart_alu = 0;
 
@@ -81,6 +82,10 @@ processor_t::processor_t(const char* isa_str, const char* priv_str,
   set_max_vaddr_bits(0);
   set_impl(IMPL_MMU_ASID, true);
   set_impl(IMPL_MMU_VMID, true);
+
+  // construct IMSIC files
+  if (extension_enabled_const(EXT_SMAIA) || extension_enabled_const(EXT_SSAIA))
+    imsic = std::make_shared<imsic_t>(this, isa.extension_enabled('H') ? geilen : 0);
 
   reset();
 
@@ -119,6 +124,7 @@ void state_t::reset(processor_t* const proc, reg_t max_isa)
   prv_changed = false;
   v_changed = false;
 
+  in_wfi = false;
   serialized = false;
   debug_mode = false;
   single_step = STEP_NONE;
@@ -180,9 +186,9 @@ void processor_t::reset()
 {
   xlen = isa.get_max_xlen();
   state.reset(this, isa.get_max_isa());
+  mmu->flush_tlb();
   if (any_vector_extensions())
     VU.reset();
-  in_wfi = false;
 
   if (n_pmp > 0) {
     // For backwards compatibility with software that is unaware of PMP,
@@ -297,15 +303,17 @@ reg_t processor_t::select_an_interrupt_with_default_priority(reg_t enabled_inter
     enabled_interrupts = MIP_SSIP;
   else if (enabled_interrupts & MIP_STIP)
     enabled_interrupts = MIP_STIP;
-  else if (enabled_interrupts & MIP_LCOFIP)
-    enabled_interrupts = MIP_LCOFIP;
+  else if (enabled_interrupts & MIP_SGEIP)
+    enabled_interrupts = MIP_SGEIP;
   else if (enabled_interrupts & MIP_VSEIP)
     enabled_interrupts = MIP_VSEIP;
   else if (enabled_interrupts & MIP_VSSIP)
     enabled_interrupts = MIP_VSSIP;
   else if (enabled_interrupts & MIP_VSTIP)
     enabled_interrupts = MIP_VSTIP;
-
+  else if (enabled_interrupts & MIP_LCOFIP)
+    enabled_interrupts = MIP_LCOFIP;
+  else assert(0);
   return enabled_interrupts;
 }
 
@@ -330,7 +338,7 @@ void processor_t::take_interrupt(reg_t pending_interrupts)
   }
 
   // Exit WFI if there are any pending interrupts
-  in_wfi = false;
+  clear_waiting_for_interrupt();
 
   // M-ints have higher priority over HS-ints and VS-ints
   const reg_t mie = get_field(state.mstatus->read(), MSTATUS_MIE);
@@ -411,7 +419,7 @@ void processor_t::enter_debug_mode(uint8_t cause, uint8_t extcause)
   set_privilege(PRV_M, false);
   state.dpc->write(state.pc);
   state.pc = DEBUG_ROM_ENTRY;
-  in_wfi = false;
+  clear_waiting_for_interrupt();
 }
 
 void processor_t::debug_output_log(std::stringstream *s)
@@ -482,7 +490,7 @@ void processor_t::take_trap(trap_t& t, reg_t epc)
       vsdeleg = hsdeleg = 0;
   }
   bool vti = false;
-  if (extension_enabled_const(EXT_SSAIA)) {
+  if (extension_enabled_const(EXT_SSAIA) && extension_enabled('H')) {
     const reg_t hvictl = state.csrmap[CSR_HVICTL]->read();
     const reg_t iid = get_field(hvictl, HVICTL_IID);
     // It is possible that hvictl is injecting VSEIP (10) and hvictl.DPR is causing mip.VSEIP to be picked over VTI.
@@ -684,6 +692,15 @@ reg_t processor_t::get_csr(int which, insn_t insn, bool write, bool peek)
   throw trap_illegal_instruction(insn.bits());
 }
 
+reg_t processor_t::get_csr_for_write(int which)
+{
+  auto search = state.csrmap.find(which);
+  if (search != state.csrmap.end())
+    return search->second->read_for_write();
+
+  abort(); // The preceding permission-checked CSR read found this CSR.
+}
+
 const insn_desc_t insn_desc_t::illegal_instruction = {
   0, 0,
   &::illegal_instruction, &::illegal_instruction, &::illegal_instruction, &::illegal_instruction,
@@ -806,8 +823,13 @@ void processor_t::register_base_instructions()
     name##_overlapping = true; \
     if (isa.extension_enabled(ext)) \
       DEFINE_INSN_UNCOND(name);
+  #define DECLARE_OVERLAP_INSN_RV64(name, ext) \
+    name##_overlapping = true; \
+    if (isa.extension_enabled(ext) && xlen == 64) \
+      DEFINE_INSN_UNCOND(name);
   #include "overlap_list.h"
   #undef DECLARE_OVERLAP_INSN
+  #undef DECLARE_OVERLAP_INSN_RV64
 
   // add all other instructions.  since they are non-overlapping, the order
   // does not affect correctness, but more frequent instructions should

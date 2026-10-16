@@ -141,7 +141,7 @@ do { \
 #define WRITE_FRD_F(value) \
 do { \
   if (p->extension_enabled(EXT_ZFINX)) \
-    WRITE_REG(insn.rd(), sext_xlen((value).v)); \
+    WRITE_REG(insn.rd(), sext32((value).v)); \
   else { \
     WRITE_FRD(value); \
   } \
@@ -202,15 +202,6 @@ static inline bool is_aligned(const unsigned val, const unsigned pos)
 #define require_noover_widen(astart, asize, bstart, bsize) \
   require(!is_overlapped_widen(astart, asize, bstart, bsize))
 #define require_vm do { if (insn.v_vm() == 0) require(insn.rd() != 0); } while (0);
-#define require_envcfg(field) \
-  do { \
-    if (((STATE.prv != PRV_M) && (m##field == 0)) || \
-        ((STATE.prv == PRV_U && !STATE.v) && (s##field == 0))) \
-      throw trap_illegal_instruction(insn.bits()); \
-    else if (STATE.v && ((h##field == 0) || \
-                        ((STATE.prv == PRV_U) && (s##field == 0)))) \
-      throw trap_virtual_instruction(insn.bits()); \
-  } while (0);
 
 #define require_zcmp_pushpop \
   do { \
@@ -249,13 +240,6 @@ static inline bool is_aligned(const unsigned val, const unsigned pos)
   do { reg_t __npc = (x) & p->pc_alignment_mask(); \
        npc = PC_SERIALIZE_AFTER; \
        STATE.pc = __npc; \
-     } while (0)
-
-class wait_for_interrupt_t {};
-
-#define wfi() \
-  do { set_pc_and_serialize(npc); \
-       throw wait_for_interrupt_t(); \
      } while (0)
 
 #define serialize() set_pc_and_serialize(npc)
@@ -369,7 +353,16 @@ inline long double to_f(float128_t f) { long double r; memcpy(&r, &f, sizeof(r))
   reg_t s##field = get_field(STATE.senvcfg->read(), SENVCFG_##field); \
   reg_t h##field = get_field(STATE.henvcfg->read(), HENVCFG_##field)
 
-#endif
+#define require_envcfg(field) \
+  do { \
+    DECLARE_XENVCFG_VARS(field); \
+    if ((STATE.prv != PRV_M && m##field == 0) || \
+        (p->extension_enabled('S') && STATE.prv == PRV_U && !STATE.v && s##field == 0)) \
+      throw trap_illegal_instruction(insn.bits()); \
+    else if (STATE.v && (h##field == 0 || \
+                        (STATE.prv == PRV_U && s##field == 0))) \
+      throw trap_virtual_instruction(insn.bits()); \
+  } while (0);
 
 #define software_check(x, tval) (unlikely(!(x)) ? throw trap_software_check(tval) : (void) 0)
 #define ZICFILP_xLPE(v, prv) \
@@ -397,3 +390,5 @@ inline long double to_f(float128_t f) { long double r; memcpy(&r, &f, sizeof(r))
       return p->set_lpad_expected(npc); \
     } \
   }
+
+#endif

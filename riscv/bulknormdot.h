@@ -73,7 +73,7 @@ public:
   int mant_bits = mantWidth;
 public:
   /* raw exponent field */
-  E exp() const { return (n >> mantWidth) & ((1 << expWidth) - 1); }
+  E exp() const override { return (n >> mantWidth) & ((1 << expWidth) - 1); }
 
   /* raw exponent field with correction for subnormal */
   E expSubFixed() const { return exp() + subOrZero(); }
@@ -85,27 +85,27 @@ public:
   M mantMask() const { return (1 << mantWidth) - 1; }
 
   /** Number mantissa */
-  M mant() const { return n & mantMask(); }
+  M mant() const override { return n & mantMask(); }
 
   /** Number significand */
-  M sig() const { return mant() ^ (!subOrZero() << mantWidth);}
+  M sig() const override { return mant() ^ (!subOrZero() << mantWidth);}
 
   /** bit mask for exponent */
   E expMask() const { return (1 << expWidth) - 1; }
 
   /* predicate: is the value a subnormal number or a zero */
-  bool subOrZero() const { return exp() == 0; }
+  bool subOrZero() const override { return exp() == 0; }
 
   /** predicate: is the value a special value (infinity or NaN) */
-  virtual bool special() const { return exp() == expMask(); }
+  bool special() const override { return exp() == expMask(); }
 
   /** predicate: is the value an infinity */
-  virtual bool inf() const { return special() && mant() == 0; }
+  bool inf() const override { return special() && mant() == 0; }
 
   /** predicate: is the value a NaN (Not A Number) */
-  virtual bool nan() const { return special() && mant() != 0; }
+  bool nan() const override { return special() && mant() != 0; }
 
-  virtual bool sigNan() const { return nan() && !inf() && ( ( mant() >> (mantWidth - 1)) == 0); }
+  bool sigNan() const override { return nan() && !inf() && ( ( mant() >> (mantWidth - 1)) == 0); }
 
   bool isZero() const { return exp() == 0 && mant() == 0; }
 };
@@ -114,7 +114,7 @@ class bf16_t final : public IEEEFloatFormat<uint16_t, uint8_t, uint8_t, 8, 7> {
  public:
   operator uint16_t() const { return n; }
 
-  bf16_t() {}
+  bf16_t() : IEEEFloatFormat(0) {}
   bf16_t(uint16_t _n) : IEEEFloatFormat(_n) {}
 
   bf16_t flushed() const
@@ -125,15 +125,30 @@ class bf16_t final : public IEEEFloatFormat<uint16_t, uint8_t, uint8_t, 8, 7> {
   }
 };
 
+class fp16_norm_t : public IEEEFloatFormat<uint16_t, uint16_t, uint8_t, 5, 10> {
+ public:
+  operator uint16_t() const { return n; }
+
+  fp16_norm_t() : IEEEFloatFormat(0) {}
+  fp16_norm_t(uint16_t _n) : IEEEFloatFormat(_n) {}
+
+  fp16_norm_t flushed() const
+  {
+    if (exp() == 0)
+      return fp16_norm_t(uint16_t(sign() << 15));
+    return *this;
+  }
+};
+
 /** OpenCompute 8-bit Floating-point E5M2 (5-bit exponent, 2-bit mantissa) */
 class ofp8_e5m2 final : public IEEEFloatFormat<uint8_t, uint8_t, uint8_t, 5, 2> {
  public:
   operator uint8_t() const { return n; }
-  ofp8_e5m2() {}
+  ofp8_e5m2() : IEEEFloatFormat(0) {}
   ofp8_e5m2(uint8_t _n) : IEEEFloatFormat(_n) {}
 
   // OFP8 does not have signaling NaNs
-  bool sigNan() const { return false; }
+  bool sigNan() const override { return false; }
 
   ofp8_e5m2 flushed() const
   {
@@ -147,18 +162,18 @@ class ofp8_e5m2 final : public IEEEFloatFormat<uint8_t, uint8_t, uint8_t, 5, 2> 
 class ofp8_e4m3 final : public IEEEFloatFormat<uint8_t, uint8_t, uint8_t, 4, 3>  {
  public:
   operator uint8_t() const { return n; }
-  ofp8_e4m3() {}
+  ofp8_e4m3() : IEEEFloatFormat(0) {}
   ofp8_e4m3(uint8_t _n) : IEEEFloatFormat(_n) {}
 
   // E4M3 does not have infinities
-  bool inf() const { return false; }
+  bool inf() const override { return false; }
 
-  bool nan() const { return exp() == expMask() && mant() == mantMask(); }
+  bool nan() const override { return exp() == expMask() && mant() == mantMask(); }
 
-  bool special() const { return nan(); }
+  bool special() const override { return nan(); }
 
   // OFP8 does not have signaling NaNs
-  bool sigNan() const { return false; }
+  bool sigNan() const override { return false; }
 
   ofp8_e4m3 flushed() const
   {
@@ -315,6 +330,20 @@ static inline bulk_norm_out_t bulk_norm_dot_bf16(const DotConfig cfg, const bf16
   }
 
   return bulk_norm_dot_no_mult<bf16_t, bf16_t, uint16_t>(cfg, a, b, &prod_sigs[0]);
+}
+
+/** half-precision (fp16/binary16) dot product (without accumulation) */
+static inline bulk_norm_out_t bulk_norm_dot_fp16(const DotConfig cfg, const fp16_norm_t* a, const fp16_norm_t* b)
+{
+  // product are extracted so that the no-mult version can be more easily matched against the RTL implementation
+  std::vector<uint32_t> prod_sigs(cfg.n);
+
+  // compute products, normalize to largest exponent, accumulate
+  for (int i = 0; i < cfg.n; i++) {
+    prod_sigs[i] = a[i].sig() * (uint16_t) b[i].sig();
+  }
+
+  return bulk_norm_dot_no_mult<fp16_norm_t, fp16_norm_t, uint32_t>(cfg, a, b, &prod_sigs[0]);
 }
 
 template <typename L, typename R>
