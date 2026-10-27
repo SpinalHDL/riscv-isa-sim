@@ -438,6 +438,26 @@ void processor_t::debug_output_log(std::stringstream *s)
 void processor_t::take_trap(trap_t& t, reg_t epc)
 {
   unsigned max_xlen = isa.get_max_xlen();
+  reg_t tval = t.get_tval();
+
+  if (max_xlen == 64 && extension_enabled('S') && !state.v && !t.has_gva()) {
+    switch (t.cause()) {
+      case CAUSE_MISALIGNED_LOAD:
+      case CAUSE_LOAD_ACCESS:
+      case CAUSE_MISALIGNED_STORE:
+      case CAUSE_STORE_ACCESS:
+      case CAUSE_LOAD_PAGE_FAULT:
+      case CAUSE_STORE_PAGE_FAULT: {
+        // Match Vexii's Sv39 LSU address encoding before trap entry changes MPP.
+        const auto prv = mmu->in_mprv() ? get_field(state.mstatus->read(), MSTATUS_MPP) : state.prv;
+        const bool translated = prv != PRV_M && get_field(state.satp->read(), SATP64_MODE) == SATP_MODE_SV39;
+        const reg_t sign = (tval >> 38) & 1;
+        const bool bad = (tval >> 39) != (translated && sign ? (~reg_t(0) >> 39) : 0);
+        tval = sext((tval & ((reg_t(1) << 39) - 1)) | ((sign ^ bad) << 39), 40);
+        break;
+      }
+    }
+  }
 
   if (debug) {
     std::stringstream s; // first put everything in a string, later send it to output
@@ -447,7 +467,7 @@ void processor_t::take_trap(trap_t& t, reg_t epc)
     if (t.has_tval())
        s << "core " << std::dec << std::setfill(' ') << std::setw(3) << id
          << ":           tval 0x" << std::hex << std::setfill('0') << std::setw(max_xlen / 4)
-         << zext(t.get_tval(), max_xlen) << std::endl;
+         << zext(tval, max_xlen) << std::endl;
     debug_output_log(&s);
   }
 
@@ -522,7 +542,7 @@ void processor_t::take_trap(trap_t& t, reg_t epc)
     state.pc = (state.nonvirtual_stvec->read() & ~(reg_t)1) + vector;
     state.nonvirtual_scause->write(t.cause());
     state.nonvirtual_sepc->write(epc);
-    state.nonvirtual_stval->write(t.get_tval());
+    state.nonvirtual_stval->write(tval);
     state.htval->write(t.get_tval2());
     state.htinst->write(t.get_tinst());
 
@@ -568,7 +588,7 @@ void processor_t::take_trap(trap_t& t, reg_t epc)
     state.pc = !nmie ? rnmi_trap_handler_address : trap_handler_address;
     state.mepc->write(epc);
     state.mcause->write(supv_double_trap ? CAUSE_DOUBLE_TRAP : t.cause());
-    state.mtval->write(t.get_tval());
+    state.mtval->write(tval);
     state.mtval2->write(supv_double_trap ? t.cause() : t.get_tval2());
     state.mtinst->write(t.get_tinst());
 
