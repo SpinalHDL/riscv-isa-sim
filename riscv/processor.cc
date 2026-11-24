@@ -448,12 +448,9 @@ void processor_t::take_trap(trap_t& t, reg_t epc)
       case CAUSE_STORE_ACCESS:
       case CAUSE_LOAD_PAGE_FAULT:
       case CAUSE_STORE_PAGE_FAULT: {
-        // Match Vexii's Sv39 LSU address encoding before trap entry changes MPP.
-        const auto prv = mmu->in_mprv() ? get_field(state.mstatus->read(), MSTATUS_MPP) : state.prv;
-        const bool translated = prv != PRV_M && get_field(state.satp->read(), SATP64_MODE) == SATP_MODE_SV39;
-        const reg_t sign = (tval >> 38) & 1;
-        const bool bad = (tval >> 39) != (translated && sign ? (~reg_t(0) >> 39) : 0);
-        tval = sext((tval & ((reg_t(1) << 39) - 1)) | ((sign ^ bad) << 39), 40);
+        // Match Vexii's 40-bit address encoding on overflow.
+        if (tval != reg_t(sext(tval, 40)))
+          tval = sext((reg_t(0b10) << 38) | zext(tval, 38), 40);
         break;
       }
     }
